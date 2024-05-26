@@ -1,0 +1,764 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+    <body class="bg-body-tertiary">
+    <header>
+
+        <nav class="navbar navbar-expand-xl p-3 border-bottom shadow-sm bg-body navbar-light">
+            <div class="container">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#navbar_robot_toggler">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <a href="/" class="navbar-brand ">{{ platform_name }}</a>
+                <div class="collapse navbar-collapse" id="navbar_robot_toggler">
+                    <div class="navbar-nav ms-auto">
+                        <a class="nav-item nav-link " href="/" onclick="window.location.reload();">
+
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                                 class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd"
+                                      d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                            </svg>
+
+                            <span id="lastNewsFetchNote" class="text-secondary small">(Last news fetch: <script>document.write(dateConvert("{{ lastRefreshed|date:"c" }}", "medium"));</script><noscript>{{ lastRefreshed|date:"H:i" }}</noscript>)</span>
+                        </a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
+                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                More
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                {% load webpush_notifications %}
+                                {% webpush_button with_class="dropdown-item " %}
+                                <a class="dropdown-item " href="/?archive=true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                                         class="bi bi-archive" viewBox="0 0 16 16" style="margin: 0px 5px 2px 0px;">
+                                        <path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
+                                    </svg>
+                                    Archive</a>
+                                <div class="dropdown-divider"></div>
+                                {% if authenticated %}
+                                    <a class="dropdown-item " href="/logout/">Logout</a>
+                                {% else %}
+                                    <a class="dropdown-item " href="/login/">Login</a>
+                                {% endif %}
+                                <a class="dropdown-item " href="/admin/">Admin</a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item " href="https://vanalmsick.github.io/news_platform/"
+                                   target="_blank">Documentation</a>
+                                <a class="dropdown-item " href="https://github.com/vanalmsick/news_platform"
+                                   target="_blank">GitHub</a>
+                                <a class="dropdown-item "
+                                   href="https://github.com/vanalmsick/news_platform/discussions/categories/ideas"
+                                   target="_blank">Suggest an idea</a>
+                            </div>
+                        </li>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+
+    <!-- Notification -->
+    <div aria-live="polite" aria-atomic="true" class="bg-dark bd-example-toasts">
+        <div class="toast-container refresh-notification p-3" id="toastPlacement">
+            <div id="refreshNotification" class="toast fade">
+                <div class="toast-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                         class="bi bi-arrow-clockwise me-1" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/>
+                    </svg>
+                    <strong class="me-auto">News Update Avaiable</strong>
+                    <small id="refreshNotificationMessage">in 10 seconds</small>
+                </div>
+                <div class="toast-body">
+                    The page will refresh soon to fetch the new news.
+                    <div class="mt-2 pt-2 border-top">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="reloadSeconds = 600;">Snooze for 5
+                            min
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="window.location.reload();">
+                            Refresh Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalPublisher">Loading...</h5>
+                    <button type="button" class="btn-close close" data-mdb-dismiss="modal" aria-label="Close"
+                            onclick="closeModal()"></button>
+                </div>
+                <div class="modal-body bg-body-tertiary">
+                    <div id="modaltext" class="mx-auto my-3 bg-body rounded shadow-sm text-break">
+                        <h2 id="modalTitle" style="font-family: Georgia, serif; font-weight: bold;"></h2>
+                        <div id="modalSummary" class="lead pb-2" style="font-family: Georgia, serif;"></div>
+                        <div id="modalDate" class="mb-1 text-muted" style="font-family: Georgia, serif;"></div>
+                        <div id="modalAccordion" class="mb-4" style="display: none;">
+                            <div class="card">
+                                <div class="card-header bg-tertiary d-flex justify-content-between" id="headingOne">
+                                    <h6 class="mb-0">
+                                        AI Article Summary
+                                    </h6>
+                                    <h6 class="mb-0">
+                                        <span class="text-secondary"><i>(ChatGPT 3.5)</i></span>
+                                    </h6>
+                                </div>
+                                <div id="modalAI" class="card-body " style="font-family: Georgia, serif;">
+                                </div>
+
+                            </div>
+                        </div>
+                        <div id="modalIMG" class="pb-2" style="text-align: center;"></div>
+                        <div id="modalFullText" style="font-family: Georgia, serif;"></div>
+                    </div>
+                    <div id="modalContainerTags"
+                         class="d-flex flex-wrap align-items-center justify-content-center mx-auto mb-2 ">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <a id="modalEmail" class="btn btn-outline-danger cust-text-danger" href="#" role="button"
+                       style="color: #FFFFFF; height: 40px; white-space: no-wrap; display: inline-flex; flex-wrap: wrap;"
+                       target="_blank">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                             class="bi bi-envelope-at" viewBox="0 0 16 16" style="margin: auto;">
+                            <path d="M2 2a2 2 0 0 0-2 2v8.01A2 2 0 0 0 2 14h5.5a.5.5 0 0 0 0-1H2a1 1 0 0 1-.966-.741l5.64-3.471L8 9.583l7-4.2V8.5a.5.5 0 0 0 1 0V4a2 2 0 0 0-2-2H2Zm3.708 6.208L1 11.105V5.383l4.708 2.825ZM1 4.217V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v.217l-7 4.2-7-4.2Z"/>
+                            <path d="M14.247 14.269c1.01 0 1.587-.857 1.587-2.025v-.21C15.834 10.43 14.64 9 12.52 9h-.035C10.42 9 9 10.36 9 12.432v.214C9 14.82 10.438 16 12.358 16h.044c.594 0 1.018-.074 1.237-.175v-.73c-.245.11-.673.18-1.18.18h-.044c-1.334 0-2.571-.788-2.571-2.655v-.157c0-1.657 1.058-2.724 2.64-2.724h.04c1.535 0 2.484 1.05 2.484 2.326v.118c0 .975-.324 1.39-.639 1.39-.232 0-.41-.148-.41-.42v-2.19h-.906v.569h-.03c-.084-.298-.368-.63-.954-.63-.778 0-1.259.555-1.259 1.4v.528c0 .892.49 1.434 1.26 1.434.471 0 .896-.227 1.014-.643h.043c.118.42.617.648 1.12.648Zm-2.453-1.588v-.227c0-.546.227-.791.573-.791.297 0 .572.192.572.708v.367c0 .573-.253.744-.564.744-.354 0-.581-.215-.581-.8Z"/>
+                        </svg>
+                        <div class="d-none d-md-block" style="margin: 0px 0px 0px 4px;"> Email</div>
+                    </a>
+                    <a id="modalSave" class="btn btn-outline-info me-auto cust-text-info" href="#" role="button"
+                       style="color: #FFFFFF; height: 40px; white-space: no-wrap; display: inline-flex; flex-wrap: wrap;"
+                       target="_self">
+                        <div id="modalSaveIcon">
+                        </div>
+                        <div class="d-none d-md-block" style="margin: 0px 0px 0px 4px;"> Save</div>
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-mdb-dismiss="modal" onclick="closeModal()">
+                        Close
+                    </button>
+                    <a id="modalLink" class="btn btn-primary" href="/" role="button" style="color: #FFFFFF;"
+                       target="_blank" referrerpolicy="no-referrer">Go to Article</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="py-3 px-m-4 w-100" style="text-align: center;">
+        <div id="leftSpace" style="text-align: left;">
+            <div class="py-1 fs-5 border-bottom">
+                <span><strong class="text-gray-dark ps-3">Markets</strong></span>
+            </div>
+
+            <div class="mb-2 border-bottom">
+                {% for group, entry_lst in marketData.items %}
+                    <div class="p-2 px-3 mt-3 bg-body shadow-sm d-flex justify-content-between fs-5 fw-bold">{{ group.name }}</div>
+                    {% for data in entry_lst %}
+                        <div class="p-2 px-3 bg-body shadow-sm d-flex justify-content-between fs-6 text-muted">
+                            <div class="text-left">
+                                {% if data.market_closed %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                                         class="bi bi-moon-stars" viewBox="0 0 16 16">
+                                        <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/>
+                                        <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
+                                    </svg>
+                                {% elif data.source.pinned %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                                         class="bi bi-pin-angle" viewBox="0 0 16 16">
+                                        <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146m.122 2.112v-.002zm0-.002v.002a.5.5 0 0 1-.122.51L6.293 6.878a.5.5 0 0 1-.511.12H5.78l-.014-.004a5 5 0 0 0-.288-.076 5 5 0 0 0-.765-.116c-.422-.028-.836.008-1.175.15l5.51 5.509c.141-.34.177-.753.149-1.175a5 5 0 0 0-.192-1.054l-.004-.013v-.001a.5.5 0 0 1 .12-.512l3.536-3.535a.5.5 0 0 1 .532-.115l.096.022c.087.017.208.034.344.034q.172.002.343-.04L9.927 2.028q-.042.172-.04.343a1.8 1.8 0 0 0 .062.46z"/>
+                                    </svg>
+                                {% elif data.change_today == 0 %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" fill="currentColor"
+                                         class="bi bi-circle-fill m-1 mb-2" viewBox="0 0 16 16">
+                                        <circle cx="8" cy="8" r="8"/>
+                                    </svg>
+                                {% elif data.change_today > 0 %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                         class="bi bi-caret-up-fill text-success" viewBox="0 0 16 16">
+                                        <path d="m7.247 4.86-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z"/>
+                                    </svg>
+                                {% else %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                         class="bi bi-caret-down-fill text-danger" viewBox="0 0 16 16">
+                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+                                    </svg>
+                                {% endif %}
+                                {{ data.source.name }}
+                            </div>
+                            <div class="
+                            {% if data.market_closed or data.change_today == 0 %}text-muted
+                            {% elif data.change_today > data.source.notification_threshold %}bg-success bg-opacity-25 text-success
+                            {% elif data.change_today > 0 %}text-success
+                            {% elif data.change_today < 0 and data.change_today_abs > data.source.notification_threshold %}bg-danger bg-opacity-25 text-danger
+                            {% else %}text-danger
+                            {% endif %} text-right">
+                                {% if data.change_today > 0 %}+{% endif %}{{ data.change_today|floatformat:"2g" }}
+                                {% if data.source.data_source == 'te' %} bps{% else %}%{% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Main website -->
+        <div id="mainSpace" style="text-align: left;">
+
+            <div id="topSpaceSummary" class="container mb-3" style="overflow-x: scroll; white-space: nowrap;">
+                <div class="row">
+                    <div class="col-md-12 text-center">
+                        {% for group, entry_lst in marketData.items %}
+                            {% for entry in entry_lst %}
+                                {% if entry.source.pinned or entry.worst_perf_idx == 1 %}
+                                    <div class="market-data-div bg-body shadow-sm p-2 text-muted"
+                                         style="margin: 4px 1px;">
+                                        <div class="d-flex justify-content-between">
+                                            <div class="d-inline-block">{{ entry.source.name }}</div>
+                                            {% if entry.source.pinned %}
+                                                <div class="d-inline-block">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                         fill="currentColor" class="bi bi-pin-angle"
+                                                         viewBox="0 0 16 16">
+                                                        <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146m.122 2.112v-.002zm0-.002v.002a.5.5 0 0 1-.122.51L6.293 6.878a.5.5 0 0 1-.511.12H5.78l-.014-.004a5 5 0 0 0-.288-.076 5 5 0 0 0-.765-.116c-.422-.028-.836.008-1.175.15l5.51 5.509c.141-.34.177-.753.149-1.175a5 5 0 0 0-.192-1.054l-.004-.013v-.001a.5.5 0 0 1 .12-.512l3.536-3.535a.5.5 0 0 1 .532-.115l.096.022c.087.017.208.034.344.034q.172.002.343-.04L9.927 2.028q-.042.172-.04.343a1.8 1.8 0 0 0 .062.46z"/>
+                                                    </svg>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <div class="d-inline-block">
+                                                {% if entry.market_closed %}
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                         fill="currentColor" class="bi bi-moon-stars"
+                                                         viewBox="0 0 16 16">
+                                                        <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/>
+                                                        <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
+                                                    </svg>
+                                                {% elif entry.change_today == 0 %}
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"
+                                                         fill="currentColor" class="bi bi-circle-fill m-1 mb-2"
+                                                         viewBox="0 0 16 16">
+                                                        <circle cx="8" cy="8" r="8"/>
+                                                    </svg>
+                                                {% elif entry.change_today > 0 %}
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                                         fill="currentColor" class="bi bi-caret-up-fill text-success"
+                                                         viewBox="0 0 16 16">
+                                                        <path d="m7.247 4.86-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z"/>
+                                                    </svg>
+                                                {% else %}
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                                         fill="currentColor" class="bi bi-caret-down-fill text-danger"
+                                                         viewBox="0 0 16 16">
+                                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+                                                    </svg>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-end d-inline-block
+                                        {% if entry.market_closed or entry.change_today == 0 %}text-muted
+                                        {% elif entry.change_today > entry.source.notification_threshold %}bg-success bg-opacity-25 text-success
+                                        {% elif entry.change_today > 0 %}text-success
+                                        {% elif entry.change_today < 0 and entry.change_today_abs > entry.source.notification_threshold %}bg-danger bg-opacity-25 text-danger
+                                        {% else %}text-danger
+                                        {% endif %} text-right">{% if entry.change_today > 0 %}
+                                                +{% endif %}{{ entry.change_today|floatformat:"2g" }}
+                                                {% if entry.source.data_source == 'te' %}bps{% else %}%{% endif %}</div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                {% if forloop.last %}
+                                    <div class="vr mx-1" style="height: 40%;"></div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                        <div class="market-data-div shadow-sm p-2 btn btn-sm rounded-5 bg-dark-subtle  align-top"
+                             style="margin: 4px 1px;"
+                             onclick="hideElement(&quot;topSpaceSummary&quot;);showElement(&quot;topSpaceExtended&quot;);">
+                            <div class="d-flex justify-content-center">
+                                <div class="d-inline-block text-secondary">Show more</div>
+                            </div>
+                            <div class="d-flex justify-content-center">
+                                <div class="d-inline-block fw-bold text-muted">+ Market Data</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="topSpaceExtended" class="container mb-3"
+                 style="overflow-x: scroll; white-space: nowrap; display: none; visibility: hidden; height: 0; width: 0;">
+
+                <a class="nav-button btn btn-sm rounded-5 p-1 px-3 mx-1 mb-1 shadow-sm bg-dark-subtle text-muted"
+                   onclick="hideElement(&quot;topSpaceExtended&quot;);showElement(&quot;topSpaceSummary&quot;);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                         class="bi bi-x-lg" viewBox="0 0 16 16" style="margin: 0px 0px 3px 0px;">
+                        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                    </svg>
+                    Minimize
+                </a>
+
+                {% for group, entry_lst in marketData.items %}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="market-data-div bg-body shadow-sm p-2 fw-bold" style="margin: 4px 1px;">
+                                {{ group.name }}
+                            </div>
+                            {% for data in entry_lst %}
+                                <div class="market-data-div bg-body shadow-sm p-2 text-muted" style="margin: 4px 1px;">
+                                    <div class="d-flex justify-content-between">
+                                        <div class="d-inline-block">{{ data.source.name }}</div>
+                                        {% if data.source.pinned %}
+                                            <div class="d-inline-block">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                     fill="currentColor" class="bi bi-pin-angle" viewBox="0 0 16 16">
+                                                    <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146m.122 2.112v-.002zm0-.002v.002a.5.5 0 0 1-.122.51L6.293 6.878a.5.5 0 0 1-.511.12H5.78l-.014-.004a5 5 0 0 0-.288-.076 5 5 0 0 0-.765-.116c-.422-.028-.836.008-1.175.15l5.51 5.509c.141-.34.177-.753.149-1.175a5 5 0 0 0-.192-1.054l-.004-.013v-.001a.5.5 0 0 1 .12-.512l3.536-3.535a.5.5 0 0 1 .532-.115l.096.022c.087.017.208.034.344.034q.172.002.343-.04L9.927 2.028q-.042.172-.04.343a1.8 1.8 0 0 0 .062.46z"/>
+                                                </svg>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <div class="d-inline-block">
+                                            {% if data.market_closed %}
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                                     fill="currentColor" class="bi bi-moon-stars" viewBox="0 0 16 16">
+                                                    <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/>
+                                                    <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
+                                                </svg>
+                                            {% elif data.change_today == 0 %}
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"
+                                                     fill="currentColor" class="bi bi-circle-fill m-1 mb-2"
+                                                     viewBox="0 0 16 16">
+                                                    <circle cx="8" cy="8" r="8"/>
+                                                </svg>
+                                            {% elif data.change_today > 0 %}
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                                     fill="currentColor" class="bi bi-caret-up-fill text-success"
+                                                     viewBox="0 0 16 16">
+                                                    <path d="m7.247 4.86-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z"/>
+                                                </svg>
+                                            {% else %}
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                                     fill="currentColor" class="bi bi-caret-down-fill text-danger"
+                                                     viewBox="0 0 16 16">
+                                                    <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+                                                </svg>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-end d-inline-block
+                                        {% if data.market_closed or data.change_today == 0 %}text-muted
+                                        {% elif data.change_today > data.source.notification_threshold %}bg-success bg-opacity-25 text-success
+                                        {% elif data.change_today > 0 %}text-success
+                                        {% elif data.change_today < 0 and data.change_today_abs > data.source.notification_threshold %}bg-danger bg-opacity-25 text-danger
+                                        {% else %}text-danger
+                                        {% endif %} text-right">{% if data.change_today > 0 %}
+                                            +{% endif %}{{ data.change_today|floatformat:"2g" }}
+                                            {% if data.source.data_source == 'te' %}bps{% else %}%{% endif %}</div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center justify-content-center mx-auto mb-2">
+                {% for page in navbar %}
+                    <a id="nav_page__{{ page.url_hash }}"
+                       class="nav-button btn btn-sm rounded-5 p-1 px-3 mx-1 mb-1 shadow-sm {% if page.url_hash == selected_page %}btn-primary {% else %}bg-dark-subtle {% endif %}"
+                       href="/?{{ page.url_parameters }}">{{ page.html_icon|safe }}{{ page.name }}</a>
+                {% endfor %}
+            </div>
+
+            <div class="album d-flex align-items-center justify-content-center">
+                <div class="container m-0">
+
+                    <div class="p-3 bg-body rounded shadow-sm">
+
+                        <div class="row mb-2 flex-fill">
+                            {% for article in articles %}
+                                {% if article is not None and article.publisher is not None %}
+                                    <div id="{{ article.pk }}"
+                                         class="context-card col-12 col-sm-6 col-md-4 col-xl-3 my-2"
+                                         tabindex="{{ forloop.counter|add:"8" }}"
+                                         style="cursor: pointer;-webkit-user-select: none;-webkit-touch-callout: none;-webkit-user-drag: none;"
+                                         data-read-later="{{ article.read_later }}">
+                                        <div class="card mb-4 box-shadow h-100
+                                                {% if article.importance_type == 'breaking' or 'breaking' in article.categories|lower %} breaking
+                                                {% elif article.importance_type == 'headline' or 'headline' in article.categories|lower %} headline
+                                                {% endif %}
+                                                {% if article.content_type == 'ticker' or 'ticker' in article.categories|lower %} live
+                                                {% elif article.content_type == 'briefing' or 'briefing' in article.categories|lower %} briefing
+                                                {% endif %}">
+                                            {% if article.image_url != Null %}
+                                                <img class="card-img-top" alt="Thumbnail" style="width: 100%;"
+                                                     referrerpolicy="no-referrer"
+                                                     src="{{ article.image_url }}" loading="lazy">
+                                            {% endif %}
+                                            <div class="card-body d-flex flex-column align-items-start text-break">
+                                                <strong class="d-inline-block mb-2 text-primary"
+                                                        style="font-family: Georgia, serif;">{{ article.genre }}</strong>
+                                                <h3 class="mb-0  fs-5"
+                                                    style="font-family: Georgia, serif; font-weight: bold;">
+                                                    {% if article.content_type == "ticker" %}
+                                                        <span class="dot"></span>{% endif %}
+                                                    {{ article.title }}
+                                                </h3>
+
+                                                {% if debug %}
+                                                    <table class="table table-sm small">
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">importance_type</th>
+                                                            <td class="col-6">{{ article.importance_type }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">content_type</th>
+                                                            <td class="col-6">{{ article.content_type }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">has_full_text</th>
+                                                            <td class="col-6">{{ article.has_full_text }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">pub_date</th>
+                                                            <td class="col-6">{{ article.pub_date|date:"c" }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">added_date</th>
+                                                            <td class="col-6">{{ article.added_date|date:"c" }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">last_updated_date</th>
+                                                            <td class="col-6">{{ article.last_updated_date|date:"c" }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">guid</th>
+                                                            <td class="col-6">{{ article.guid }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">hash</th>
+                                                            <td class="col-6">{{ article.hash }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">categories</th>
+                                                            <td class="col-6">{{ article.categories }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">language</th>
+                                                            <td class="col-6">{{ article.language }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">publisher_article_position</th>
+                                                            <td class="col-6">{{ article.publisher_article_position }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">min_feed_position</th>
+                                                            <td class="col-6">{{ article.min_feed_position }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">min_article_relevance</th>
+                                                            <td class="col-6">{{ article.min_article_relevance }}</td>
+                                                        </tr>
+                                                        <tr class="d-flex">
+                                                            <th class="col-6">max_importance</th>
+                                                            <td class="col-6">{{ article.max_importance }}</td>
+                                                        </tr>
+                                                    </table>
+
+
+                                                    <table class="table table-sm small">
+                                                        {% for position in article.feedposition_set.all %}
+                                                            <tr class="d-flex">
+                                                                <td class="col-6">
+                                                                    ({{ position.feed.pk }}) {{ position.feed.name }}</td>
+                                                                <td class="col-2">{{ position.position }}</td>
+                                                                <td class="col-1">{{ position.importance }}</td>
+                                                                <td class="col-3">{{ position.relevance|floatformat:3 }}</td>
+
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </table>
+
+                                                {% else %}
+
+                                                    <div class="mb-1 text-muted"
+                                                         style="font-family: Georgia, serif;">
+                                                        {% if article.content_type == 'ticker' or 'ticker' in article.categories|lower %}
+                                                            <span class="label label-live">live</span>
+                                                        {% elif article.content_type == 'briefing' or 'briefing' in article.categories|lower %}
+                                                            <span class="label label-briefing">briefing</span>
+                                                        {% elif article.importance_type == 'breaking' or 'breaking' in article.categories|lower %}
+                                                            <span class="label label-breaking">breaking</span>
+                                                        {% endif %}
+                                                        {{ article.publisher.name }}
+                                                        -
+                                                        {% if selected_page == 'articles___special_____sidebar___' %}
+                                                            <script>document.write(createDateStr("{{ article.pub_date|date:"c" }}", "{{ article.added_date|date:"c" }}", "medium"));</script>
+                                                        {% else %}
+                                                            <script>document.write(dateConvert("{{ article.pub_date|date:"c" }}"));</script>
+                                                        {% endif %}
+                                                        <noscript>{{ article.pub_date|date:"D H:i" }}</noscript>
+                                                        {% if article.has_full_text == False %}
+                                                            {% if article.publisher.paywall == 'Y' %}
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14"
+                                                                     height="14"
+                                                                     fill="currentColor" class="bi bi-currency-dollar"
+                                                                     viewBox="0 0 16 16">
+                                                                    <path d="M4 10.781c.148 1.667 1.513 2.85 3.591 3.003V15h1.043v-1.216c2.27-.179 3.678-1.438 3.678-3.3 0-1.59-.947-2.51-2.956-3.028l-.722-.187V3.467c1.122.11 1.879.714 2.07 1.616h1.47c-.166-1.6-1.54-2.748-3.54-2.875V1H7.591v1.233c-1.939.23-3.27 1.472-3.27 3.156 0 1.454.966 2.483 2.661 2.917l.61.162v4.031c-1.149-.17-1.94-.8-2.131-1.718H4zm3.391-3.836c-1.043-.263-1.6-.825-1.6-1.616 0-.944.704-1.641 1.8-1.828v3.495l-.2-.05zm1.591 1.872c1.287.323 1.852.859 1.852 1.769 0 1.097-.826 1.828-2.2 1.939V8.73l.348.086z"/>
+                                                                </svg>
+                                                            {% endif %}
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14"
+                                                                 height="14"
+                                                                 fill="currentColor" class="bi bi-link-45deg"
+                                                                 viewBox="0 0 16 16">
+                                                                <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/>
+                                                                <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/>
+                                                            </svg>
+                                                        {% endif %}
+                                                    </div>
+
+                                                    <p class="card-text mb-auto"
+                                                       style="font-family: Georgia, serif;">
+                                                        {% if article.extract != None %}
+                                                            {{ article.extract|truncatechars:255|safe }}{% endif %}</p>
+
+                                                {% endif %}
+                                                <a class="stretched-link"
+                                                        {% if article.has_full_text == False %}
+                                                   href="{{ article.link }}" target="_blank"
+                                                   referrerpolicy="no-referrer"
+                                                        {% else %}
+                                                   href="/view/{{ article.pk }}/{% if debug %}?debug=true{% endif %}"
+                                                   target="_self"
+                                                   referrerpolicy="no-referrer"
+                                                        {% endif %}></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <nav>
+                            <ul class="pagination  justify-content-center">
+                                {% for page in page_pagination %}
+                                    <li class="page-item"><a class="page-link {{ page.css_class }}"
+                                                             href="{{ page.url }}">{{ page.i }}</a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </nav>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="rightSpace"
+             class="d-none {% if selected_page != 'articles___special_____sidebar___' %} d-md-inline-block {% endif %}"
+             style="text-align: left;">
+            <div class="mb-2 py-1 border-bottom fs-5 d-flex justify-content-between">
+                <span><strong class="text-gray-dark ps-3">{{ sidebar_title }}</strong></span>
+                <a class="btn btn-sm rounded-5 p-1 px-3 mx-1 mb-1 shadow-sm {% if selected_page == 'articles___special_____sidebar___' %} btn-primary  {% else %} bg-dark-subtle  {% endif %}"
+                   tabindex="4" href="/?special=sidebar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                         class="bi bi-box-arrow-in-left" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                              d="M10 3.5a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 1 1 0v2A1.5 1.5 0 0 1 9.5 14h-8A1.5 1.5 0 0 1 0 12.5v-9A1.5 1.5 0 0 1 1.5 2h8A1.5 1.5 0 0 1 11 3.5v2a.5.5 0 0 1-1 0v-2z"/>
+                        <path fill-rule="evenodd"
+                              d="M4.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H14.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3z"/>
+                    </svg>
+                    Show in Main Section</a>
+            </div>
+            <div class="list-group">
+                {% for side_article in sidebar %}
+                    {% if side_article is not None and side_article.publisher is not None %}
+                        <a id="side_{{ side_article.pk }}"
+                           class="context-card list-group-item list-group-item-action
+                                {% if side_article.importance_type == 'breaking' or 'breaking' in side_article.categories|lower %} breaking
+                                {% elif side_article.importance_type == 'headline' or 'headline' in side_article.categories|lower or side_article.publisher.renowned >= 2 %} headline
+                                {% endif %}
+                                {% if side_article.content_type == 'ticker' or 'ticker' in side_article.categories|lower %} live
+                                {% elif side_article.content_type == 'briefing' or 'briefing' in side_article.categories|lower %} briefing
+                                {% endif %}"
+                           aria-current="true"
+                           onmouseover=showElement("extract_{{ side_article.pk }}")
+                           onmouseout=hideElement("extract_{{ side_article.pk }}")
+                                {% if side_article.has_full_text == False %}
+                           href="{{ side_article.link }}" target="_blank" referrerpolicy="no-referrer"
+                                {% else %}
+                           href="/view/{{ side_article.pk }}/" target="_self" referrerpolicy="no-referrer"
+                                {% endif %}
+                           style="font-family: Georgia, serif;cursor: pointer;"
+                           data-read-later="{{ side_article.read_later }}">
+                            <div class="d-flex w-100 justify-content-between" style="margin: 2px 0px 0px 0px;">
+                                <h6 style="margin: 0px 0px 2px 0px;">{% if side_article.content_type == "ticker" %}
+                                    <span class="dot"></span>{% endif %}{{ side_article.title }}</h6>
+                                <div class="align-top">
+                                    {% if side_article.has_full_text == False %}
+                                        {% if 'publisher' in side_article and side_article.publisher.paywall == 'Y' %}
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+                                                 fill="currentColor" class="bi bi-currency-dollar align-top mt-1"
+                                                 viewBox="0 0 16 16">
+                                                <path d="M4 10.781c.148 1.667 1.513 2.85 3.591 3.003V15h1.043v-1.216c2.27-.179 3.678-1.438 3.678-3.3 0-1.59-.947-2.51-2.956-3.028l-.722-.187V3.467c1.122.11 1.879.714 2.07 1.616h1.47c-.166-1.6-1.54-2.748-3.54-2.875V1H7.591v1.233c-1.939.23-3.27 1.472-3.27 3.156 0 1.454.966 2.483 2.661 2.917l.61.162v4.031c-1.149-.17-1.94-.8-2.131-1.718H4zm3.391-3.836c-1.043-.263-1.6-.825-1.6-1.616 0-.944.704-1.641 1.8-1.828v3.495l-.2-.05zm1.591 1.872c1.287.323 1.852.859 1.852 1.769 0 1.097-.826 1.828-2.2 1.939V8.73l.348.086z"/>
+                                            </svg>
+                                        {% endif %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+                                             fill="currentColor" class="bi bi-link-45deg align-top mt-1"
+                                             viewBox="0 0 16 16">
+                                            <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1.002 1.002 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4.018 4.018 0 0 1-.128-1.287z"/>
+                                            <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/>
+                                        </svg>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="d-flex w-100 justify-content-between">
+                                <div class="text-muted">
+                                    {% if side_article.content_type == 'ticker' or 'ticker' in side_article.categories|lower %}
+                                        <span class="label label-live">live</span>
+                                    {% elif side_article.content_type == 'briefing' or 'briefing' in side_article.categories|lower %}
+                                        <span class="label label-briefing">briefing</span>
+                                    {% elif side_article.importance_type == 'breaking' or 'breaking' in side_article.categories|lower %}
+                                        <span class="label label-breaking">breaking</span>
+                                    {% endif %}
+                                    {{ side_article.publisher.name }}
+                                </div>
+                                <div class="text-muted">
+                                    <script>document.write(createDateStr("{{ side_article.pub_date|date:"c" }}", "{{ side_article.added_date|date:"c" }}", "short"));</script>
+                                    <noscript>{{ side_article.added_date|date:"D H:i" }}
+                                        / {{ side_article.pub_date|date:"D H:i" }}</noscript>
+                                </div>
+                            </div>
+                            <small id="extract_{{ side_article.pk }}"
+                                   class="d-flex w-100 justify-content-between text-secondary"
+                                   style="display: none; visibility: hidden; height: 0; width:0;">
+                                <p class="card-text mb-auto"
+                                   style="font-family: Georgia, serif;">{% if side_article.extract != None %}
+                                    {{ side_article.extract|truncatechars:255|safe }}{% endif %}</p>
+                            </small>
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+
+    <button onclick="scrollToPageTop()" id="scrollTopBtn" title="Go to top">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" class="bi bi-arrow-up-short"
+             viewBox="0 0 16 16">
+            <path fill-rule="evenodd"
+                  d="M8 12a.5.5 0 0 0 .5-.5V5.707l2.146 2.147a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0l-3 3a.5.5 0 1 0 .708.708L7.5 5.707V11.5a.5.5 0 0 0 .5.5z"/>
+        </svg>
+    </button>
+
+    </body>
+    <script>
+
+        var reloadSeconds = 10;
+        var lastPageRefresh = Math.floor(Date.now() / 1000)
+        applyUserLightDarkTheme();
+
+
+        // Below for detection of closing of web app
+        function onVisible() {
+
+            console.log('web app visible (last news check ' + (Math.floor(Date.now() / 1000) - lastPageRefresh) + 's ago)');
+            applyUserLightDarkTheme();
+
+            // check when last checked
+            if (Math.floor(Date.now() / 1000) - lastPageRefresh > 120) {
+                console.log('reload via visibilitychange');
+                scrollToPageTop();
+                window.location.reload();
+            }
+
+        }
+
+        document.addEventListener('visibilitychange', onVisible);
+        //document.addEventListener('focus', onVisible);
+
+
+        // check every X seconds if new articles avaialbe
+        function checkNewNews() {
+            restRequest('/api/refresh/')
+                .then(response => response.lastRefreshed)
+                .then(function (lastRefreshed) {
+                    // console.log(((lastRefreshed === null) && ('{{ lastRefreshed }}' === 'None')), ('{{ lastRefreshed|date:"c" }}' === lastRefreshed));
+                    if (false === (((lastRefreshed === null) && ('{{ lastRefreshed }}' === 'None')) || ('{{ lastRefreshed|date:"c" }}' === lastRefreshed))) {
+                        console.log('new articles avaiable');
+                        clearInterval(interval);
+                        let element = document.getElementById("refreshNotification");
+                        element.classList.add("show");
+                        setInterval(refreshPageRefreshNotification, 1000 * 1);
+                    } else {
+                        let element = document.getElementById("lastNewsFetchNote");
+                        element.innerHTML = '(Last news fetch: ' + dateConvert("{{ lastRefreshed|date:"c" }}", "medium") + ')';
+                        console.log('no new articles avaiable');
+                    }
+                    ;
+                });
+            lastPageRefresh = Math.floor(Date.now() / 1000);
+        }
+
+        const interval = setInterval(checkNewNews, 1000 * 60);
+
+
+        function wait(ms) {
+            var start = new Date().getTime();
+            var end = start;
+            while (end < start + ms) {
+                end = new Date().getTime();
+            }
+        }
+
+
+        function refreshPageRefreshNotification() {
+            console.log(reloadSeconds + ' seconds till page refresh');
+            let element = document.getElementById("refreshNotificationMessage");
+            if (reloadSeconds === 0) {
+                element.innerHTML = 'refreshing now...';
+                resetReadLater();
+                scrollToPageTop();
+                window.location.reload();
+            } else {
+                element.innerHTML = 'in ' + reloadSeconds + ' seconds';
+            }
+            reloadSeconds -= 1;
+        }
+
+
+        // when user scrolls down 20px from the top of the page, show the button
+        window.onscroll = function () {
+            userScrollsScreen()
+        };
+
+        function userScrollsScreen() {
+            let scrollTopBtn = document.getElementById("scrollTopBtn");
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                scrollTopBtn.style.display = "block";
+            } else {
+                scrollTopBtn.style.display = "none";
+            }
+        }
+
+        // when user clicks on the button, scroll to the top of the page
+        function scrollToPageTop() {
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
+        }
+
+
+    </script>
+{% endblock %}

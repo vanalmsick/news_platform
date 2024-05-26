@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+    <body class="bg-body-tertiary">
+    <!-- The Modal -->
+    <div id="myModal" class="modal" style="display: block;">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalPublisher">{{ article.publisher.name }}</h5>
+                    <a type="button" class="btn-close close" data-mdb-dismiss="modal" aria-label="Close"
+                       href="/?fghjk=a" onclick="goBackHistory();return false;"></a>
+                </div>
+                <div class="modal-body bg-body-tertiary">
+                    <div id="modaltext" class="mx-auto my-3 bg-body rounded shadow-sm text-break">
+                        <h2 id="modalTitle"
+                            style="font-family: Georgia, serif; font-weight: bold;">{{ article.title }}</h2>
+                        {% if article.has_extract %}
+                            <div id="modalSummary" class="lead pb-2"
+                                 style="font-family: Georgia, serif;">{{ article.extract|truncatechars:400|safe }}</div>
+                        {% endif %}
+                        <div id="modalDate" class="mb-1 text-muted" style="font-family: Georgia, serif;">
+                            Published
+                            <script>document.write(dateConvert("{{ article.pub_date|date:"c" }}"));</script>
+                            <noscript>{{ article.pub_date|date:"D H:i" }}</noscript>
+                            //
+                            Added
+                            <script>document.write(dateConvert("{{ article.added_date|date:"c" }}"));</script>
+                            <noscript>{{ article.added_date|date:"D H:i" }}</noscript>
+                        </div>
+                        {% if article.ai_summary != Null and article.ai_summary != 'None' %}
+                            <div id="modalAccordion" class="mb-4">
+                                <div class="card">
+                                    <div class="card-header bg-tertiary d-flex justify-content-between" id="headingOne">
+                                        <h6 class="mb-0">
+                                            AI Article Summary
+                                        </h6>
+                                        <h6 class="mb-0">
+                                            <span class="text-secondary"><i>(ChatGPT 3.5)</i></span>
+                                        </h6>
+                                    </div>
+                                    <div id="modalAI" class="card-body " style="font-family: Georgia, serif;">
+                                        {{ article.ai_summary|safe }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        {% if article.image_url is not None and article.image_url|length > 5 and article.content_type != 'video' %}
+                            <div id="modalIMG" class="pb-2" style="text-align: center;"><img
+                                    src="{{ article.image_url }}" referrerpolicy="no-referrer"
+                                    style="max-width: 100%; max-height: 80vh; object-fit: cover;"></div>
+                        {% endif %}
+                        <div id="modalFullText"
+                             style="font-family: Georgia, serif;">{{ article.full_text_html|safe }}</div>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center justify-content-center mx-auto mb-2 ">
+                        <a class="btn btn-sm rounded-5 p-1 px-3 mx-1 mb-1 shadow-sm bg-dark-subtle"
+                           href="/?publisher__name={{ article.publisher.name|lower }}&content_type={{ article.content_type }}">@{{ article.publisher.name|upper }}</a>
+                        {% with article.categories|split:";" as tags %}
+                            {% for tag in tags %}
+                                {% if tag and tag|length > 2 %}
+                                    <a class="btn btn-sm rounded-5 p-1 px-3 mx-1 mb-1 shadow-sm bg-dark-subtle"
+                                       href="/?categories={{ tag|lower }}&content_type={{ article.content_type }}">#{{ tag|upper }}</a>
+                                {% endif %}
+                            {% endfor %}
+                        {% endwith %}
+                    </div>
+
+                    {% if debug %}
+                        <div class="text-center pt-3"><h4>Article kwargs:</h4></div>
+                        <table class="table table-striped table-sm"
+                               style="width: 80%; table-layout: fixed; overflow-wrap: break-word; word-wrap: break-word; margin:0 auto;">
+                            <tr>
+                                <th scope="col">Key</th>
+                                <th scope="col">Value</th>
+                            </tr>
+                            <tr>
+                                <td>publisher.pk</td>
+                                <td>{{ article.publisher.pk }}</td>
+                            </tr>
+                            <tr>
+                                <td>publisher.name</td>
+                                <td>{{ article.publisher.name }}</td>
+                            </tr>
+                            <tr>
+                                <td>article_group.pk</td>
+                                <td>{{ article.article_group.pk }}</td>
+                            </tr>
+                            <tr>
+                                <td>article_group.name</td>
+                                <td>{{ article.article_group.name }}</td>
+                            </tr>
+                            <tr>
+                                <td>importance_type</td>
+                                <td>{{ article.importance_type }}</td>
+                            </tr>
+                            <tr>
+                                <td>content_type</td>
+                                <td>{{ article.content_type }}</td>
+                            </tr>
+                            <tr>
+                                <td>has_full_text</td>
+                                <td>{{ article.has_full_text }}</td>
+                            </tr>
+                            <tr>
+                                <td>link</td>
+                                <td>{{ article.link }}</td>
+                            </tr>
+                            <tr>
+                                <td>pub_date</td>
+                                <td>{{ article.pub_date }}</td>
+                            </tr>
+                            <tr>
+                                <td>guid</td>
+                                <td>{{ article.guid }}</td>
+                            </tr>
+                            <tr>
+                                <td>image_url</td>
+                                <td>{{ article.image_url }}</td>
+                            </tr>
+                            <tr>
+                                <td>read_later</td>
+                                <td>{{ article.read_later }}</td>
+                            </tr>
+                            <tr>
+                                <td>added_date</td>
+                                <td>{{ article.added_date }}</td>
+                            </tr>
+                            <tr>
+                                <td>last_updated_date</td>
+                                <td>{{ article.last_updated_date }}</td>
+                            </tr>
+                            <tr>
+                                <td>publisher_article_position</td>
+                                <td>{{ article.publisher_article_position }}</td>
+                            </tr>
+                            <tr>
+                                <td>min_feed_position</td>
+                                <td>{{ article.min_feed_position }}</td>
+                            </tr>
+                            <tr>
+                                <td>min_article_relevance</td>
+                                <td>{{ article.min_article_relevance }}</td>
+                            </tr>
+                            <tr>
+                                <td>max_importance</td>
+                                <td>{{ article.max_importance }}</td>
+                            </tr>
+                            <tr>
+                                <td>categories</td>
+                                <td>{{ article.categories }}</td>
+                            </tr>
+                            <tr>
+                                <td>language</td>
+                                <td>{{ article.language }}</td>
+                            </tr>
+                            <tr>
+                                <td>hash</td>
+                                <td>{{ article.hash }}</td>
+                            </tr>
+                            <tr>
+                                <td>mailto_link</td>
+                                <td>{{ article.mailto_link }}</td>
+                            </tr>
+                        </table>
+
+                        <div class="text-center pt-3"><h4>Feed Positions:</h4></div>
+                        <table class="table table-striped table-sm"
+                               style="width: 80%; table-layout: fixed; overflow-wrap: break-word; word-wrap: break-word; margin:0 auto;">
+                            <tr>
+                                <th scope="col">Feed</th>
+                                <th scope="col">Feed Importance</th>
+                                <th scope="col">Feed Ordering</th>
+                                <th scope="col">Feed Categories</th>
+
+                                <th scope="col">Position #</th>
+                                <th scope="col">Position Importance</th>
+                                <th scope="col">Position Relevance</th>
+
+                                <th scope="col">Publisher Name</th>
+                                <th scope="col">Publisher Renowned</th>
+
+                            </tr>
+                            {% for position in article.feedposition_set.all %}
+                                <tr>
+                                    <td scope="row"><a
+                                            href="/?feedposition__feed__pk={{ position.feed.pk }}">{{ position.feed.name }}</a>
+                                    </td>
+                                    <td>{{ position.feed.importance }}</td>
+                                    <td>{{ position.feed.feed_ordering }}</td>
+                                    <td>{{ position.feed.source_categories }}</td>
+
+                                    <td>{{ position.position }}</td>
+                                    <td>{{ position.importance }}</td>
+                                    <td>{{ position.relevance }}</td>
+
+                                    <td>{{ position.feed.publisher.name }}</td>
+                                    <td>{{ position.feed.publisher.renowned }}</td>
+
+                                </tr>
+                            {% endfor %}
+                        </table>
+
+                    {% endif %}
+
+
+                </div>
+
+
+                <div class="modal-footer">
+                    <a id="modalEmail" class="btn btn-outline-danger" href="{{ article.mailto_link }}"
+                       role="button" target="_blank">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                             class="bi bi-envelope-at" viewBox="0 0 16 16">
+                            <path d="M2 2a2 2 0 0 0-2 2v8.01A2 2 0 0 0 2 14h5.5a.5.5 0 0 0 0-1H2a1 1 0 0 1-.966-.741l5.64-3.471L8 9.583l7-4.2V8.5a.5.5 0 0 0 1 0V4a2 2 0 0 0-2-2H2Zm3.708 6.208L1 11.105V5.383l4.708 2.825ZM1 4.217V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v.217l-7 4.2-7-4.2Z"/>
+                            <path d="M14.247 14.269c1.01 0 1.587-.857 1.587-2.025v-.21C15.834 10.43 14.64 9 12.52 9h-.035C10.42 9 9 10.36 9 12.432v.214C9 14.82 10.438 16 12.358 16h.044c.594 0 1.018-.074 1.237-.175v-.73c-.245.11-.673.18-1.18.18h-.044c-1.334 0-2.571-.788-2.571-2.655v-.157c0-1.657 1.058-2.724 2.64-2.724h.04c1.535 0 2.484 1.05 2.484 2.326v.118c0 .975-.324 1.39-.639 1.39-.232 0-.41-.148-.41-.42v-2.19h-.906v.569h-.03c-.084-.298-.368-.63-.954-.63-.778 0-1.259.555-1.259 1.4v.528c0 .892.49 1.434 1.26 1.434.471 0 .896-.227 1.014-.643h.043c.118.42.617.648 1.12.648Zm-2.453-1.588v-.227c0-.546.227-.791.573-.791.297 0 .572.192.572.708v.367c0 .573-.253.744-.564.744-.354 0-.581-.215-.581-.8Z"/>
+                        </svg>
+                        <div class="d-none d-md-inline-block"> Email</div>
+                    </a>
+
+                    {% if article.read_later %}
+                        <a id="modalSave" class="btn btn-outline-info"
+                           href="/read-later/remove/{{ article.pk }}/" role="button"
+                           target="_self">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                 class="bi bi-bookmark-check-fill" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd"
+                                      d="M2 15.5V2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.74.439L8 13.069l-5.26 2.87A.5.5 0 0 1 2 15.5m8.854-9.646a.5.5 0 0 0-.708-.708L7.5 7.793 6.354 6.646a.5.5 0 1 0-.708.708l1.5 1.5a.5.5 0 0 0 .708 0l3-3"/>
+                            </svg>
+                            <div class="d-none d-md-inline-block"> Save</div>
+                        </a>
+                    {% else %}
+                        <a id="modalSave" class="btn btn-outline-info"
+                           href="/read-later/add/{{ article.pk }}/" role="button"
+                           target="_self">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                 class="bi bi-bookmark-plus" viewBox="0 0 16 16">
+                                <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1z"/>
+                                <path d="M8 4a.5.5 0 0 1 .5.5V6H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V7H6a.5.5 0 0 1 0-1h1.5V4.5A.5.5 0 0 1 8 4"/>
+                            </svg>
+                            <div class="d-none d-md-inline-block"> Save</div>
+                        </a>
+                    {% endif %}
+
+                    {% if article.archive %}
+                        <a class="btn btn-outline-secondary me-auto"
+                           href="/archive/remove/{{ article.pk }}/" role="button"
+                           target="_self">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                 class="bi bi-archive-fill" viewBox="0 0 16 16">
+                                <path d="M12.643 15C13.979 15 15 13.845 15 12.5V5H1v7.5C1 13.845 2.021 15 3.357 15zM5.5 7h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1 0-1M.8 1a.8.8 0 0 0-.8.8V3a.8.8 0 0 0 .8.8h14.4A.8.8 0 0 0 16 3V1.8a.8.8 0 0 0-.8-.8z"/>
+                            </svg>
+                            <div class="d-none d-md-inline-block"> Archive</div>
+                        </a>
+                    {% else %}
+                        <a class="btn btn-outline-secondary me-auto"
+                           href="/archive/add/{{ article.pk }}/" role="button" target="_self">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                 class="bi bi-archive" viewBox="0 0 16 16">
+                                <path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
+                            </svg>
+                            <div class="d-none d-md-inline-block"> Archive</div>
+                        </a>
+                    {% endif %}
+
+                    <a type="button" class="btn btn-secondary" data-mdb-dismiss="modal" href="/"
+                       onclick="goBackHistory();return false;">
+                        Close
+                    </a>
+                    <a id="modalLink" class="btn btn-primary" href="{{ article.link }}" role="button"
+                       target="_blank" referrerpolicy="no-referrer">Go to Article</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    </body>
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            // dark mode
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+            var links = document.getElementsByClassName('link-dark');
+            while (links.length > 0) {
+                links[0].classList.add("link-light");
+                links[0].classList.remove("link-dark");
+            }
+            var textlst = document.getElementsByClassName('text-dark');
+            while (textlst.length > 0) {
+                textlst[0].classList.add("text-light");
+                textlst[0].classList.remove("text-dark");
+            }
+        } else {
+            // light mode
+            document.documentElement.setAttribute('data-bs-theme', 'light');
+        }
+
+
+        function goBackHistory() {
+            if (history.length <= 1 | window.location.href.indexOf('previous=') !== -1) {
+                console.log('Go to home page');
+                window.location.href = '/';
+            } else {
+                console.log('Go one page back');
+                window.history.back();
+            }
+        }
+
+    </script>
+{% endblock %}

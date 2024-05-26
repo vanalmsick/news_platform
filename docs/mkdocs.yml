@@ -1,0 +1,56 @@
+# Navigate to this directory and then run "mkdocs serve" to see a live-view of the documentation
+# More settings: https://squidfunk.github.io/mkdocs-material/setup/
+
+site_name: Personal News Platform
+site_description: News Aggregator - Aggregates news articles from several RSS feeds, fetches full-text if possible, sorts them by relevance (based on user settings), and display on distraction-free homepage.
+site_url: https://vanalmsi.github.io/news_platform/
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: mealie
+      primary: white
+      accent: light blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: light blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - search.suggest
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - toc.integrate
+    - navigation.top
+    - navigation.footer
+
+nav:
+  - Home: "index.md"
+  - Getting Started: "getting_started.md"
+  - Usage & Setting: "usage.md"
+  - Article Ranking (ToDo): "todo.md"
+  - Developer Guide:
+      - Dev Setup (ToDo): "todo.md"
+      - API Reference (ToDo): "todo.md"
+      - Contribution Guide (ToDo): "todo.md"
+  - Suggest an idea: "https://github.com/vanalmsick/news_platform/discussions/categories/ideas"
+
+
+markdown_extensions:
+  - def_list
+  - admonition
+  - attr_list
+
+plugins:
+  - search
+  - offline
+
+repo_url: https://github.com/vanalmsick/news_platform
+repo_name: vanalmsick/news_platform

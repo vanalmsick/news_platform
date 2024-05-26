@@ -1,0 +1,85 @@
+version: "3.9"
+
+services:
+
+  # The News Plattform
+  news-platform:
+    image: vanalmsick/news_platform
+    container_name: news-platform
+    restart: always
+    ports:
+      - 9380:80    # for gui/website
+      - 9381:5555  # for Celery Flower Task Que
+      - 9382:9001  # for Docker Supervisor Process Manager
+    depends_on:
+      - news-platform-postgres   # if using PostgreSQL Database
+    volumes:
+      - /mnt/ssd/news_platform:/news_platform/data
+    environment:
+      HOSTS: 'http://localhost,http://127.0.0.1,http://0.0.0.0,http://docker-container-name,http://news.yourwebsite.com,https://news.yourwebsite.com'
+      CUSTOM_PLATFORM_NAME: 'Personal News Platform'
+      SIDEBAR_TITLE: 'Latest News'
+      TIME_ZONE: 'Europe/London'
+      ALLOWED_LANGUAGES: 'en,de'
+      POSTGRESQL_HOST: news-platform-postgres  # Optional if using PostgreSQL Database: hostname/URL
+      POSTGRESQL_DB: postgres  # Optional if using PostgreSQL Database: db name
+      POSTGRESQL_USER: postgres  # Optional if using PostgreSQL Database: user name
+      POSTGRESQL_PASSWORD: postgres  # Optional if using PostgreSQL Database: user password
+      # FULL_TEXT_URL: 'http://fivefilters:80/full-text-rss/'
+      # FEED_CREATOR_URL: 'http://fivefilters:80/feed-creator/'
+      # DEBUG: false
+      # OPENAI_API_KEY: '<YOUR_OPEN_AI_API_KEY>'
+    deploy:
+      resources:
+        limits:
+          memory: 2048M  # not required but might be useful to limit memory usage if bug
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"  # if you use Watchtower for container updates
+
+
+  # HTTPS LetsEncrypt Container
+  news-platform-letsencrypt:
+    image: linuxserver/letsencrypt
+    container_name: news-platform-letsencrypt
+    restart: always
+    depends_on:
+      - news-platform
+    ports:
+      - 9480:80  # for http
+      - 9443:443 # for https
+    volumes:
+      - news_platform_letsencrypt:/config
+    environment:
+      - EMAIL=<YOUR_EMAIL>
+      - URL=yourwebsite.com
+      - SUBDOMAINS=news
+      - VALIDATION=http
+      - TZ=Europe/London
+      - DNSPLUGIN=cloudflare
+      - ONLY_SUBDOMAINS=true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"  # if you use Watchtower for container updates
+
+
+  # Optional PostgreSQL Database instead of SQLite
+  news-platform-postgres:
+    image: postgres:16
+    container_name: news-platform-postgres
+    restart: always
+    volumes:
+      - /mnt/ssd/news_platform/postgresql:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres  # has to match above
+      POSTGRES_DB: postgres  # has to match above
+      POSTGRES_PASSWORD: postgres  # has to match above
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"  # if you use Watchtower for container updates
+
+
+volumes:
+  news_platform_letsencrypt:

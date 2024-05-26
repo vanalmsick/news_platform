@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+    <body class="bg-body-tertiary">
+
+    <div class="d-flex flex-column min-vh-100 min-vw-100">
+        <div class="d-flex flex-grow-1 justify-content-center align-items-center">
+            <div class="bg-body py-3 px-4 mb-5 rounded shadow-sm">
+                <div class="justify-content-center"><img src="{% static 'logo.png' %}"
+                                                         style="height: 200px;margin: auto;display: block;"></div>
+                <div class="h3 mb-4 text-center">{{ platform_name }}</div>
+                <form method="post" class="form-group">
+                    {{ form.as_p }}
+                    <small id="passwordHelp" class="form-text text-muted">Hint: The first name of your favorite person
+                        😉</small><br>
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary mt-2">Login</button>
+                    <span class="text-danger mt-3" style="float: right;">{{ message }}</span>
+            </div>
+            </form>
+        </div>
+    </div>
+    </div>
+
+    </body>
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            // dark mode
+            document.documentElement.setAttribute('data-bs-theme', 'dark');
+            var links = document.getElementsByClassName('link-dark');
+            while (links.length > 0) {
+                links[0].classList.add("link-light");
+                links[0].classList.remove("link-dark");
+            }
+            var textlst = document.getElementsByClassName('text-dark');
+            while (textlst.length > 0) {
+                textlst[0].classList.add("text-light");
+                textlst[0].classList.remove("text-dark");
+            }
+        } else {
+            // light mode
+            document.documentElement.setAttribute('data-bs-theme', 'light');
+        }
+    </script>
+{% endblock %}
