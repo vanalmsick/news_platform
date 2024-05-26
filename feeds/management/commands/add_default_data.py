@@ -408,20 +408,20 @@ class Command(BaseCommand):
                 "source_categories": "asia",
                 "importance": 0,
             },
-            {
-                "name": "Region Asia",
-                "publisher": Publisher.objects.get(name="CNN"),
-                "url": (
-                    "http://FEED-CREATOR.local/extract.php?url=https%3A%2F%2Fedition.cnn.com%2Fworld%2Fasia"
-                    "&item=a.container__link&item_title=span.container__headline-text"
-                    "&max=13&order=document&guid=url"
-                ),
-                "active": True,
-                "feed_ordering": "d",
-                "full_text_fetch": "Y",
-                "source_categories": "asia",
-                "importance": 1,
-            },
+            # {
+            #    "name": "Region Asia",
+            #    "publisher": Publisher.objects.get(name="CNN"),
+            #    "url": (
+            #        "http://FEED-CREATOR.local/extract.php?url=https%3A%2F%2Fedition.cnn.com%2Fworld%2Fasia"
+            #        "&item=a.container__link&item_title=span.container__headline-text"
+            #        "&max=13&order=document&guid=url"
+            #    ),
+            #    "active": True,
+            #    "feed_ordering": "d",
+            #    "full_text_fetch": "Y",
+            #    "source_categories": "asia",
+            #    "importance": 1,
+            # },
             {
                 "name": "Top News",
                 "publisher": Publisher.objects.get(name="CNBC"),
@@ -442,21 +442,21 @@ class Command(BaseCommand):
                 "source_categories": "frontpage;markets;no push",
                 "importance": 1,
             },
-            {
-                "name": "Markets",
-                "publisher": Publisher.objects.get(name="Reuters"),
-                "url": (
-                    "http://FEED-CREATOR.local/extract.php?url=https%3A%2F%2Fwww.reuters.com%2Fmarkets%2F&"
-                    "in_id_or_class=content-layout__item__SC_GG&max=19&order=document&guid=0&strip_if_url%5B0%5D="
-                    "author&strip=.label__label__f9Hew%2C.events__data__18XBG%2C.media-story-card__placement-"
-                    "container__1R55-%2C.topic__header__3T_p2&keep_qs_params="
-                ),
-                "active": True,
-                "feed_ordering": "r",
-                "full_text_fetch": "Y",
-                "source_categories": "frontpage;markets",
-                "importance": 0,
-            },
+            # {
+            #    "name": "Markets",
+            #    "publisher": Publisher.objects.get(name="Reuters"),
+            #    "url": (
+            #        "http://FEED-CREATOR.local/extract.php?url=https%3A%2F%2Fwww.reuters.com%2Fmarkets%2F&"
+            #        "in_id_or_class=content-layout__item__SC_GG&max=19&order=document&guid=0&strip_if_url%5B0%5D="
+            #        "author&strip=.label__label__f9Hew%2C.events__data__18XBG%2C.media-story-card__placement-"
+            #        "container__1R55-%2C.topic__header__3T_p2&keep_qs_params="
+            #    ),
+            #    "active": True,
+            #    "feed_ordering": "r",
+            #    "full_text_fetch": "Y",
+            #    "source_categories": "frontpage;markets",
+            #    "importance": 0,
+            # },
             {
                 "name": "All News",
                 "publisher": Publisher.objects.get(name="Risk.net"),
@@ -507,39 +507,39 @@ class Command(BaseCommand):
                 "source_categories": "frontpage;politics",
                 "importance": 3,
             },
-            {
-                "name": "Top News",
-                "publisher": Publisher.objects.get(name="The Economist"),
-                "url": (
-                    "http://FEED-CREATOR.local/mergefeeds.php?url%5B0%5D=https%3A%2F%2Fwww.economist.com%2F"
-                    "briefing%2Frss.xml&url%5B1%5D=https%3A%2F%2Fwww.economist.com%2Ffinance-and-economics%2F"
-                    "rss.xml&max=5&order=date"
-                ),
-                "active": True,
-                "feed_ordering": "r",
-                "full_text_fetch": "Y",
-                "source_categories": "frontpage;magazine",
-                "importance": 2,
-            },
-            {
-                "name": "Countries",
-                "publisher": Publisher.objects.get(name="The Economist"),
-                "url": (
-                    "http://FEED-CREATOR.local/mergefeeds.php?url%5B0%5D=https%3A%2F%2Fwww.economist.com%2F"
-                    "europe%2Frss.xml&url%5B1%5D=https%3A%2F%2Fwww.economist.com%2Finternational%2Frss.xml&"
-                    "url%5B2%5D=https%3A%2F%2Fwww.economist.com%2Funited-states%2Frss.xml&url%5B3%5D="
-                    "https%3A%2F%2Fwww.economist.com%2Fthe-americas%2Frss.xml&url%5B4%5D=https%3A%2F%2F"
-                    "www.economist.com%2Fmiddle-east-and-africa%2Frss.xml&url%5B5%5D=https%3A%2F%2F"
-                    "www.economist.com%2Fasia%2Frss.xml&url%5B6%5D=https%3A%2F%2F"
-                    "www.economist.com%2Fchina%2Frss.xml&url%5B7%5D=https%3A%2F%2F"
-                    "www.economist.com%2Fbritain%2Frss.xml&max=12&order=date"
-                ),
-                "active": True,
-                "feed_ordering": "r",
-                "full_text_fetch": "Y",
-                "source_categories": "frontpage;magazine;world",
-                "importance": 2,
-            },
+            # {
+            #    "name": "Top News",
+            #    "publisher": Publisher.objects.get(name="The Economist"),
+            #    "url": (
+            #        "http://FEED-CREATOR.local/mergefeeds.php?url%5B0%5D=https%3A%2F%2Fwww.economist.com%2F"
+            #        "briefing%2Frss.xml&url%5B1%5D=https%3A%2F%2Fwww.economist.com%2Ffinance-and-economics%2F"
+            #        "rss.xml&max=5&order=date"
+            #    ),
+            #    "active": True,
+            #    "feed_ordering": "r",
+            #    "full_text_fetch": "Y",
+            #    "source_categories": "frontpage;magazine",
+            #    "importance": 2,
+            # },
+            # {
+            #    "name": "Countries",
+            #    "publisher": Publisher.objects.get(name="The Economist"),
+            #    "url": (
+            #        "http://FEED-CREATOR.local/mergefeeds.php?url%5B0%5D=https%3A%2F%2Fwww.economist.com%2F"
+            #        "europe%2Frss.xml&url%5B1%5D=https%3A%2F%2Fwww.economist.com%2Finternational%2Frss.xml&"
+            #        "url%5B2%5D=https%3A%2F%2Fwww.economist.com%2Funited-states%2Frss.xml&url%5B3%5D="
+            #        "https%3A%2F%2Fwww.economist.com%2Fthe-americas%2Frss.xml&url%5B4%5D=https%3A%2F%2F"
+            #        "www.economist.com%2Fmiddle-east-and-africa%2Frss.xml&url%5B5%5D=https%3A%2F%2F"
+            #        "www.economist.com%2Fasia%2Frss.xml&url%5B6%5D=https%3A%2F%2F"
+            #        "www.economist.com%2Fchina%2Frss.xml&url%5B7%5D=https%3A%2F%2F"
+            #        "www.economist.com%2Fbritain%2Frss.xml&max=12&order=date"
+            #    ),
+            #    "active": True,
+            #    "feed_ordering": "r",
+            #    "full_text_fetch": "Y",
+            #    "source_categories": "frontpage;magazine;world",
+            #    "importance": 2,
+            # },
             ########################### Fund News ###########################
             {
                 "name": "All News",

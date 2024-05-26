@@ -255,7 +255,6 @@ PWA_APP_DIR = "ltr"
 PWA_APP_LANG = LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "en-UK")
 ALLOWED_LANGUAGES = os.getenv("ALLOWED_LANGUAGES", "*")
 LOGOUT_REDIRECT_URL = "/"
-SIDEBAR_TITLE = os.getenv("SIDEBAR_TITLE", "Latest News")
 
 TIME_ZONE = CELERY_TIMEZONE = os.getenv("TIME_ZONE", "Europe/London")
 TIME_ZONE_OBJ = pytz.timezone(TIME_ZONE)
@@ -308,9 +307,10 @@ WEBPUSH_SETTINGS = {
 # Custom Variables
 FULL_TEXT_URL = os.environ.get(
     "FULL_TEXT_URL"
-)  # Instnace "http://ftr.fivefilters.org/"
+)  # Instance "http://ftr.fivefilters.org/"
 FEED_CREATOR_URL = os.environ.get("FEED_CREATOR_URL")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 PWA_APP_DESCRIPTION = PWA_APP_NAME = CUSTOM_PLATFORM_NAME = os.getenv(
     "CUSTOM_PLATFORM_NAME", "Personal News Platform"
 )
+SIDEBAR_TITLE = os.getenv("SIDEBAR_TITLE", "Latest News")
