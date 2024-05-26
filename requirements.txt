@@ -20,6 +20,7 @@ python-dotenv
 supervisor
 celery
 flower
+pillow
 celery[redis]
 django_celery_beat
 django-webpush
