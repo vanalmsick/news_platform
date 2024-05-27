@@ -16,14 +16,11 @@ from urllib.parse import urlparse
 
 import pytz  # type: ignore
 import sentry_sdk
-from dotenv import load_dotenv
 from sentry_sdk.integrations.celery import CeleryIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load .env files
-load_dotenv("data/.env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
@@ -292,13 +289,8 @@ CACHES = {
 
 # Webpush
 WEBPUSH_SETTINGS = {
-    "VAPID_PUBLIC_KEY": os.environ.get(
-        "WEBPUSH_PUBLIC_KEY",
-        "BA85gAwHAU9o-4SjKIs5TUkMoHjnZETKWMYrPcMB8ZRpuRMXQn0RHiMvzmbHDylh2WJ-xs2PrJecRtuj1l7UiRw",
-    ),
-    "VAPID_PRIVATE_KEY": os.environ.get(
-        "WEBPUSH_PRIVATE_KEY", "b9-6DJOZb3MXRwckJ6C3R3hazJ-99Fh2aQ6zrNibP_0"
-    ),
+    "VAPID_PUBLIC_KEY": os.environ.get("WEBPUSH_PUBLIC_KEY", None),
+    "VAPID_PRIVATE_KEY": os.environ.get("WEBPUSH_PRIVATE_KEY", None),
     "VAPID_ADMIN_EMAIL": os.environ.get(
         "WEBPUSH_ADMIN_EMAIL", "news-platform@example.com"
     ),
