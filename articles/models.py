@@ -4,7 +4,8 @@
 import urllib
 
 from django.db import models
-from django.db.models.signals import pre_save
+from django.db.models import Max, Min
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from feeds.models import NEWS_IMPORTANCE, Feed, Publisher
@@ -173,31 +174,30 @@ class FeedPosition(models.Model):
     def __str__(self):
         return f"{self.feed} - {self.position}"
 
-    def __calc_min__max__(self):
-        if self.article is not None:
-            was_updated = False
-            for article_key, position_key in dict(
-                max_importance="importance",
-                min_feed_position="position",
-                min_article_relevance="relevance",
-            ).items():
-                if getattr(self.article, article_key) is None:
-                    setattr(self.article, article_key, getattr(self, position_key))
-                    was_updated = True
-                elif "max" in article_key and getattr(
-                    self.article, article_key
-                ) < getattr(self, position_key):
-                    setattr(self.article, article_key, getattr(self, position_key))
-                    was_updated = True
-                elif "min" in article_key and getattr(
-                    self.article, article_key
-                ) > getattr(self, position_key):
-                    setattr(self.article, article_key, getattr(self, position_key))
-                    was_updated = True
-            if was_updated:
-                self.article.save()
 
-    def save(self, *args, **kwargs):
-        """Make sure the min and max fields are refreshed on every update"""
-        self.__calc_min__max__()
-        super(FeedPosition, self).save(*args, **kwargs)
+def __recalc_article_min_max(article):
+    """function to re-calculate the Article's min/max values if FeedPositions were changed"""
+    min_max_values = article.feedposition_set.all().aggregate(
+        max_importance=Max("importance"),
+        min_feed_position=Min("position"),
+        min_article_relevance=Min("relevance"),
+    )
+    attrs_changed = False
+    for key, value in min_max_values.items():
+        if getattr(article, key, None) != value:
+            setattr(article, key, value)
+            attrs_changed = True
+    if attrs_changed:
+        article.save()
+
+
+@receiver(post_save, sender=FeedPosition)
+def save_feedposition_hook(sender, instance, using, **kwargs):
+    """signal to re-calculate the Article min/max values if FeedPositin was added/updated"""
+    __recalc_article_min_max(article=instance.article)
+
+
+@receiver(post_delete, sender=FeedPosition)
+def delete_feedposition_hook(sender, instance, using, **kwargs):
+    """signal to re-calculate the Article min/max values if FeedPositin was deleted"""
+    __recalc_article_min_max(article=instance.article)

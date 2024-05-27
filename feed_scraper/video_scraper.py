@@ -30,11 +30,6 @@ def update_videos():
     """Main function that refreshes/scrapes videos from video feed sources."""
     start_time = time.time()
 
-    all_videos = Article.objects.filter(content_type="video")
-    all_videos.update(min_feed_position=None)
-    all_videos.update(max_importance=None)
-    all_videos.update(min_article_relevance=None)
-
     feeds = Feed.objects.filter(active=True).exclude(feed_type="rss")
     if settings.TESTING:
         # when testing is turned on only fetch 10% of feeds to not having to wait too long

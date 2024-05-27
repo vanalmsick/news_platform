@@ -52,11 +52,6 @@ def update_feeds():
     for feed in inactive_feeds:
         delete_feed_positions(feed=feed)
 
-    all_articles = Article.objects.exclude(content_type="video")
-    all_articles.update(min_feed_position=None)
-    all_articles.update(max_importance=None)
-    all_articles.update(min_article_relevance=None)
-
     # get acctive feeds
     feeds = Feed.objects.filter(active=True, feed_type="rss")
     if settings.TESTING:
