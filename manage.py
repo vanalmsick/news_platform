@@ -3,10 +3,13 @@
 """Django's command-line utility for administrative tasks."""
 import datetime
 import os
+import subprocess
 import sys
 import warnings
 
-from news_platform.pwa_splash_screen_generator import create
+from dotenv import load_dotenv
+
+from news_platform.pwa_splash_screen_generator import create as create_splash_screens
 
 
 def __ensure_db_migration_folders_exist():
@@ -35,6 +38,29 @@ def __ensure_db_migration_folders_exist():
             open(i, "a").close()
 
 
+def __ensure_webpush_vapid_keys():
+    """Ensure that vapid keys for webpush were gereated"""
+    if (
+        os.environ.get("WEBPUSH_PUBLIC_KEY", None) is None
+        or os.environ.get("WEBPUSH_PRIVATE_KEY", None) is None
+    ):
+        print("Generating vapid keys for webpush...")
+        process = subprocess.Popen("vapid --gen", shell=True, stdout=subprocess.PIPE)
+        process.wait()
+        with open("private_key.pem") as f:
+            private_key = f.read().replace("\n", "").split("-----")[2]
+        with open("public_key.pem") as f:
+            public_key = f.read().replace("\n", "").split("-----")[2]
+        with open("data/.env", "a+") as f:
+            f.write(f"\nWEBPUSH_PUBLIC_KEY='{public_key}'")
+            f.write(f"\nWEBPUSH_PRIVATE_KEY='{private_key}'")
+        os.environ["WEBPUSH_PUBLIC_KEY"] = public_key
+        os.environ["WEBPUSH_PRIVATE_KEY"] = private_key
+        print("Vapid keys for webpush were created.")
+    else:
+        print("Vapid keys for webpush already exist.")
+
+
 def main():
     """Run administrative tasks."""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "news_platform.settings")
@@ -52,8 +78,12 @@ def main():
 if __name__ == "__main__":
     INITIAL_ARGV = sys.argv.copy()
 
+    # Load .env files
+    load_dotenv("data/.env")
+
     __ensure_db_migration_folders_exist()
-    create()
+    __ensure_webpush_vapid_keys()
+    create_splash_screens()
 
     if os.environ.get("RUN_MAIN", "false") == "false":
         print(

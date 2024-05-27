@@ -28,3 +28,4 @@ django-pwa
 sentry-sdk[django]
 sentry-sdk[celery]
 psycopg2-binary
+py-vapid
