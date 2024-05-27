@@ -4,6 +4,7 @@
 import datetime
 import html
 import math
+import os
 import random
 import threading
 import time
@@ -55,10 +56,11 @@ def update_feeds():
         feeds = [
             feeds[i] for i in range(0, len(feeds), len(feeds) // (len(feeds) // 10))
         ]
+    force_refetch = os.getenv("FORCE_REFETCH", "False").lower() == "true"
 
     added_articles = 0
     for feed in feeds:
-        add_articles, feed__last_fetched = fetch_feed(feed)
+        add_articles, feed__last_fetched = fetch_feed(feed, force_refetch)
         added_articles += add_articles
         setattr(feed, "last_fetched", feed__last_fetched)
         feed.save()
@@ -346,7 +348,7 @@ def add_ai_summary(article_obj_lst):
         )
 
 
-def fetch_feed(feed):
+def fetch_feed(feed, force_refetch):
     """Fetch/update/scrape all articles for a specific source feed"""
     added_articles = 0
     updated_articles = 0
@@ -376,6 +378,7 @@ def fetch_feed(feed):
     if (
         feed.last_fetched is not None
         and feed.last_fetched >= fetched_feed__last_updated
+        and force_refetch is False
     ):
         fetched_feed.entries = []
         print(

@@ -2,6 +2,7 @@
 """This file is doing the video scraping"""
 
 import datetime
+import os
 import time
 import urllib
 
@@ -36,10 +37,11 @@ def update_videos():
         feeds = [
             feeds[i] for i in range(0, len(feeds), len(feeds) // (len(feeds) // 10))
         ]
+    force_refetch = os.getenv("FORCE_REFETCH", "False").lower() == "true"
 
     added_videos = 0
     for feed in feeds:
-        added_videos += fetch_feed(feed)
+        added_videos += fetch_feed(feed, force_refetch)
 
     end_time = time.time()
     print(
@@ -48,7 +50,7 @@ def update_videos():
     )
 
 
-def fetch_feed(feed, max_per_feed=200):
+def fetch_feed(feed, force_refetch, max_per_feed=200):
     """Fetcch/update/scrape all fideos for a specific source feed"""
     added_vids = 0
 
@@ -78,6 +80,7 @@ def fetch_feed(feed, max_per_feed=200):
                 feed.feed_type == "y-channel"
                 and feed.feed_ordering != "r"
                 and len(matches) > 0
+                and force_refetch is False
             ):
                 print(
                     f"Feed '{feed}' does not require refreshing - "
