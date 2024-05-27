@@ -179,7 +179,11 @@ def homeView(request, article=None):
             "debug": "debug" in request.GET and request.GET["debug"].lower() == "true",
             "authenticated": request.user.is_authenticated,
             "platform_name": settings.CUSTOM_PLATFORM_NAME,
-            "webpush": {"group": "all"},
+            "webpush": {
+                "group": "null"
+                if settings.WEBPUSH_SETTINGS["VAPID_PRIVATE_KEY"] is None
+                else "all"
+            },
             "page_pagination": page_pagination,
             "lastRefreshed": lastRefreshed,
             "navbar": Page.objects.all().order_by("position_index"),
