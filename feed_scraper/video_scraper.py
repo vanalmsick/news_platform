@@ -11,7 +11,7 @@ from django.conf import settings
 from articles.models import Article, FeedPosition
 from feeds.models import Feed
 
-from .feed_scraper import calcualte_relevance, delete_feed_positions
+from .article_scraper import calcualte_relevance, delete_feed_positions
 
 
 def __extract_number_from_datestr(full_str, identifier):
