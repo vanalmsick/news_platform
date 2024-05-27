@@ -361,18 +361,23 @@ def fetch_feed(feed, force_refetch):
         )
 
     fetched_feed = feedparser.parse(feed_url)
+    fetched_feed__last_updated = []
     if hasattr(fetched_feed.feed, "updated_parsed"):
-        fetched_feed__last_updated = datetime.datetime.fromtimestamp(
-            time.mktime(fetched_feed.feed.updated_parsed)
+        fetched_feed__last_updated.append(
+            datetime.datetime.fromtimestamp(
+                time.mktime(fetched_feed.feed.updated_parsed)
+            )
         )
-    elif hasattr(fetched_feed.feed, "published_parsed"):
-        fetched_feed__last_updated = datetime.datetime.fromtimestamp(
-            time.mktime(fetched_feed.feed.published_parsed)
+    if hasattr(fetched_feed.feed, "published_parsed"):
+        fetched_feed__last_updated.append(
+            datetime.datetime.fromtimestamp(
+                time.mktime(fetched_feed.feed.published_parsed)
+            )
         )
-    else:
-        fetched_feed__last_updated = datetime.datetime.now()
+    if len(fetched_feed__last_updated) == 0:
+        fetched_feed__last_updated.append(datetime.datetime.now())
     fetched_feed__last_updated = settings.TIME_ZONE_OBJ.localize(
-        fetched_feed__last_updated
+        max(fetched_feed__last_updated)
     )
 
     if (
