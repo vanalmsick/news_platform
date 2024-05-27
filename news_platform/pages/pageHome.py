@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from articles.models import Article
-from feed_scraper.feed_scraper import update_feeds
+from feed_scraper.article_scraper import update_feeds
 from feed_scraper.video_scraper import update_videos
 from markets.scrape import scrape_market_data
 from news_platform.celery import app

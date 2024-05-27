@@ -2,6 +2,7 @@
 """This file is doing the video scraping"""
 
 import datetime
+import os
 import time
 import urllib
 
@@ -11,7 +12,7 @@ from django.conf import settings
 from articles.models import Article, FeedPosition
 from feeds.models import Feed
 
-from .feed_scraper import calcualte_relevance, delete_feed_positions
+from .article_scraper import calcualte_relevance, delete_feed_positions
 
 
 def __extract_number_from_datestr(full_str, identifier):
@@ -30,21 +31,17 @@ def update_videos():
     """Main function that refreshes/scrapes videos from video feed sources."""
     start_time = time.time()
 
-    all_videos = Article.objects.filter(content_type="video")
-    all_videos.update(min_feed_position=None)
-    all_videos.update(max_importance=None)
-    all_videos.update(min_article_relevance=None)
-
     feeds = Feed.objects.filter(active=True).exclude(feed_type="rss")
     if settings.TESTING:
         # when testing is turned on only fetch 10% of feeds to not having to wait too long
         feeds = [
             feeds[i] for i in range(0, len(feeds), len(feeds) // (len(feeds) // 10))
         ]
+    force_refetch = os.getenv("FORCE_REFETCH", "False").lower() == "true"
 
     added_videos = 0
     for feed in feeds:
-        added_videos += fetch_feed(feed)
+        added_videos += fetch_feed(feed, force_refetch)
 
     end_time = time.time()
     print(
@@ -53,7 +50,7 @@ def update_videos():
     )
 
 
-def fetch_feed(feed, max_per_feed=200):
+def fetch_feed(feed, force_refetch, max_per_feed=200):
     """Fetcch/update/scrape all fideos for a specific source feed"""
     added_vids = 0
 
@@ -83,6 +80,7 @@ def fetch_feed(feed, max_per_feed=200):
                 feed.feed_type == "y-channel"
                 and feed.feed_ordering != "r"
                 and len(matches) > 0
+                and force_refetch is False
             ):
                 print(
                     f"Feed '{feed}' does not require refreshing - "

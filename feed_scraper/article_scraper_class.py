@@ -2,28 +2,21 @@
 
 import datetime
 import html
-import os
 import re
 import time
 import urllib
 
-import feedparser
 import langid
 import lxml
 import lxml.html
-import pytz  # type: ignore
-import requests  # type: ignore
 from bs4 import BeautifulSoup
+from django.conf import settings
 
 from .google_news_decode import decode_google_news_url
 
 # from newspaper import Article
 # import hashlib
 
-
-TIME_ZONE = CELERY_TIMEZONE = os.getenv("TIME_ZONE", "Europe/London")
-TIME_ZONE_OBJ = pytz.timezone(TIME_ZONE)
-FULL_TEXT_URL = "http://192.168.1.201:9280/full-text-rss/"
 
 # Content types (defualt: article)
 LIVE_TICKER_KEYWORDS = [
@@ -77,7 +70,7 @@ def is_valid_url(url):
 def ensure_dt_is_tz_aware(dt):
     """small helper function to ensure all datetime.datetime are time-zone aware"""
     if type(dt) is datetime.datetime and dt.tzinfo is None:
-        dt = TIME_ZONE_OBJ.localize(dt)
+        dt = settings.TIME_ZONE_OBJ.localize(dt)
     return dt
 
 
@@ -713,7 +706,7 @@ class ScrapedArticle:
             if (published := getattr(self, attr, None)) is not None:
                 return published
         # fallback - now
-        return TIME_ZONE_OBJ.localize(datetime.datetime.now())
+        return settings.TIME_ZONE_OBJ.localize(datetime.datetime.now())
 
     @property
     def article_last_updated__final(self):
@@ -793,50 +786,9 @@ class ScrapedArticle:
         }
 
 
-def __for_dev_of_ScrapedArticle():
-    for feed_url in [
-        "https://news.google.com/rss/search?q=hedge+fund",
-        "https://medium.com/feed/tag/bundeskanzler",
-        "http://rss.dw.com/rdf/rss-en-all",
-        "http://9to5mac.com/feed/",
-        "http://www.theverge.com/rss/full.xml",
-        "https://www.n-tv.de/wirtschaft/rss",
-        "https://www.rnd.de/arc/outboundfeeds/rss/category/politik/",
-        "https://www.ft.com/rss/home/international",
-    ]:
-        fetched_feed = feedparser.parse(feed_url)
-
-        for feed_article in fetched_feed.entries[:2]:
-            article_url = feed_article.link
-
-            scraped_article = ScrapedArticle(feed_model=None)
-            scraped_article.add_feed_attrs(
-                feed_obj=fetched_feed.feed, article_obj=feed_article
-            )
-
-            if "news.google" in article_url:
-                article_url = decode_google_news_url(article_url)
-            article_html_response = requests.get(article_url)
-            full_text_url = f'{FULL_TEXT_URL}extract.php?url={urllib.parse.quote(article_url, safe="")}'
-            full_text_response = requests.get(full_text_url)
-            full_text_json = (
-                full_text_response.json()
-                if full_text_response.status_code == 200
-                else {}
-            )
-
-            scraped_article.parse_meta_attrs(response_obj=article_html_response)
-            scraped_article.parse_scrape_attrs(json_dict=full_text_json)
-
-            ## Download HTML yourself and insert into Newspaper3k
-            # n3k_article = Article(article_url)
-            # n3k_article.download(input_html=response.text)
-            # n3k_article.parse()
-            # n3k_article.nlp()
-            # boday_html = lxml.etree.tostring(n3k_article.clean_top_node, pretty_print=True)
-
-            # print(feed_artcile)
-            print("")
-
-
-# __for_dev_of_ScrapedArticle()
+## Download HTML yourself and insert into Newspaper3k
+# n3k_article = Article(article_url)
+# n3k_article.download(input_html=response.text)
+# n3k_article.parse()
+# n3k_article.nlp()
+# boday_html = lxml.etree.tostring(n3k_article.clean_top_node, pretty_print=True)
