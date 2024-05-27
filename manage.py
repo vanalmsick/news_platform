@@ -45,17 +45,17 @@ def __ensure_webpush_vapid_keys():
         or os.environ.get("WEBPUSH_PRIVATE_KEY", None) is None
     ):
         print("Generating vapid keys for webpush...")
-        process = subprocess.Popen("vapid --gen", shell=True, stdout=subprocess.PIPE)
+        process = subprocess.Popen(
+            "cd data; vapid --gen", shell=True, stdout=subprocess.PIPE
+        )
         process.wait()
-        with open("private_key.pem") as f:
-            private_key = f.read().replace("\n", "").split("-----")[2]
-        with open("public_key.pem") as f:
-            public_key = f.read().replace("\n", "").split("-----")[2]
+
         with open("data/.env", "a+") as f:
-            f.write(f"\nWEBPUSH_PUBLIC_KEY='{public_key}'")
-            f.write(f"\nWEBPUSH_PRIVATE_KEY='{private_key}'")
-        os.environ["WEBPUSH_PUBLIC_KEY"] = public_key
-        os.environ["WEBPUSH_PRIVATE_KEY"] = private_key
+            f.write("\nWEBPUSH_PUBLIC_KEY='data/private_key.pem'")
+            f.write("\nWEBPUSH_PRIVATE_KEY='data/public_key.pem'")
+        os.environ["WEBPUSH_PUBLIC_KEY"] = "data/private_key.pem"
+        os.environ["WEBPUSH_PRIVATE_KEY"] = "data/public_key.pem"
+
         print("Vapid keys for webpush were created.")
     else:
         print("Vapid keys for webpush already exist.")
