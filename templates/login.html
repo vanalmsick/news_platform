@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% load static %}
 {% block content %}
+    {% with add_webpush='no' %}
+        {{ block.super }}
+    {% endwith%}
+
     <body class="bg-body-tertiary">
 
     <div class="d-flex flex-column min-vh-100 min-vw-100">
