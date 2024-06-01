@@ -180,7 +180,7 @@ def homeView(request, article=None):
             "authenticated": request.user.is_authenticated,
             "platform_name": settings.CUSTOM_PLATFORM_NAME,
             "webpush": {
-                "group": "null"
+                "group": "no"
                 if settings.WEBPUSH_SETTINGS["VAPID_PRIVATE_KEY"] is None
                 else "all"
             },

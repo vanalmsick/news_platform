@@ -12,7 +12,8 @@ class LoginForm(forms.Form):
     """Form used on login page to enter password of default user."""
 
     password = forms.CharField(
-        max_length=63, widget=forms.TextInput(attrs={"class": "form-control"})
+        max_length=63,
+        widget=forms.TextInput(attrs={"class": "form-control sentry-ignore"}),
     )
 
 

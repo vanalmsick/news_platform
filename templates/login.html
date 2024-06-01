@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% load static %}
 {% block content %}
+    {% with add_webpush='no' %}
+        {{ block.super }}
+    {% endwith%}
+
     <body class="bg-body-tertiary">
 
     <div class="d-flex flex-column min-vh-100 min-vw-100">
@@ -9,7 +13,7 @@
                 <div class="justify-content-center"><img src="{% static 'logo.png' %}"
                                                          style="height: 200px;margin: auto;display: block;"></div>
                 <div class="h3 mb-4 text-center">{{ platform_name }}</div>
-                <form method="post" class="form-group">
+                <form method="post" class="form-group sentry-mask">
                     {{ form.as_p }}
                     <small id="passwordHelp" class="form-text text-muted">Hint: The first name of your favorite person
                         😉</small><br>

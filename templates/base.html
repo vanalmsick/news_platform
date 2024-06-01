@@ -3,6 +3,7 @@
 {% load pwa %}
 <!DOCTYPE html>
 <html lang="en">
+{% block content %}
 <head>
     <!-- Required meta tags -->
     <meta charset="utf-8">
@@ -39,7 +40,10 @@
 
     {{ sentry_sdk|safe }}
 
-    {% webpush_header %}
+    {% if add_webpush != 'no' %}
+        {% webpush_header %}
+    {% endif %}
+
     {% progressive_web_app_meta %}
 
     <script>
@@ -680,7 +684,6 @@
 </head>
 
 
-{% block content %}
 {% endblock %}
 
 </html>

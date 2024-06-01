@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% load static %}
 {% block content %}
+    {% with add_webpush=webpush.group %}
+        {{ block.super }}
+    {% endwith %}
 
     <body class="bg-body-tertiary">
     <header>
@@ -32,12 +35,11 @@
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdown">
 
-                                {% load webpush_notifications %}
-                                {% if webpush.group != 'null' %}
+                                {% if webpush.group != 'no' %}
+                                    {% load webpush_notifications %}
                                     {% webpush_button with_class="dropdown-item " %}
-                                {% else %}
-                                    {% webpush_button with_class="dropdown-item d-none " %}
                                 {% endif %}
+
                                 <a class="dropdown-item " href="/?archive=true">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
                                          class="bi bi-archive" viewBox="0 0 16 16" style="margin: 0px 5px 2px 0px;">
