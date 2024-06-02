@@ -3,3 +3,4 @@ interrogate
 pycln
 yapf
 ruff
+pydotplus
