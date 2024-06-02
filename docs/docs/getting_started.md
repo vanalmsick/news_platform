@@ -30,8 +30,6 @@ services:
       - 9380:80    # for gui/website
       - 9381:5555  # for Celery Flower Task Que
       - 9382:9001  # for Docker Supervisor Process Manager
-    depends_on:
-      - news-platform-letsencrypt
     volumes:
       - /your/local/data/dir/news_platform:/news_platform/data
     environment:
@@ -57,6 +55,8 @@ services:
     ports:
       - 9480:80   # incomming http
       - 9443:443  # incomming https
+    depends_on:
+      - news-platform
     volumes:
       - news_platform_letsencrypt:/config
     environment:
