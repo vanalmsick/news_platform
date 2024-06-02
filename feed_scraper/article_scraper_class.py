@@ -38,7 +38,6 @@ BRIEFING_NEWS_KEYWORDS = [
     "power on",
     "this week in",
     "weekly recap",
-    "brief",
 ]
 
 # Importance types (defualt: normal)
