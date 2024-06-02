@@ -4,3 +4,6 @@ pycln
 yapf
 ruff
 pydotplus
+mkdocs
+mkdocs-material
+mkdocs-render-swagger-plugin

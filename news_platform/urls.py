@@ -18,6 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.contrib.auth.views import LogoutView
 from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from news_platform.pages.pageAPI import (
     ArchiveView,
@@ -45,6 +46,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("login/", LoginView, name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
+    path("api/schema/raw/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/schema/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/article/<int:pk>/", RestArticleAPIView.as_view(), name="article_api"),
     path("api/publisher/<int:pk>/", RestPublisherAPIView.as_view(), name="publisher_api"),
     path("api/page/", RestHomeView.as_view(), name="page_api"),
