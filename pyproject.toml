@@ -25,3 +25,4 @@ verbose = 2
 exclude = ["data"]
 
 [tool.setuptools_scm]
+version_file = "_version.py"
