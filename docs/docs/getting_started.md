@@ -41,8 +41,6 @@ services:
       SIDEBAR_TITLE: 'Latest News'
       TIME_ZONE: 'Europe/London'
       ALLOWED_LANGUAGES: 'en,de'
-      FULL_TEXT_URL: 'http://fivefilters:80/full-text-rss/'
-      FEED_CREATOR_URL: 'http://fivefilters:80/feed-creator/'
       WEBPUSH_PUBLIC_KEY: '<YOUR_WEBPUSH_PUBLIC_KEY>'
       WEBPUSH_PRIVATE_KEY: '<YOUR_WEBPUSH_PRIVATE_KEY>'
       WEBPUSH_ADMIN_EMAIL: 'admin@example.com'
