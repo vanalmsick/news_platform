@@ -7,8 +7,6 @@ import time
 import urllib
 
 import langid
-import lxml
-import lxml.html
 from bs4 import BeautifulSoup
 from django.conf import settings
 
@@ -263,7 +261,7 @@ class ScrapedArticle:
             None,
             "",
         ]:
-            if lxml.html.fromstring(article_html).find(".//*") is not None:  # html
+            if bool(BeautifulSoup(article_html, "html.parser").find()):  # html
                 (
                     self.article_summary_html__feed,
                     self.article_summary_text__feed,
@@ -284,7 +282,7 @@ class ScrapedArticle:
                 content_i_value = content_i.get("value", "")
                 content_i_is_html = "html" in content_i.get("type", "") or (
                     content_i_value != ""
-                    and lxml.html.fromstring(content_i_value).find(".//*") is not None
+                    and bool(BeautifulSoup(content_i_value, "html.parser").find())
                 )
                 new_content_html += (
                     f"{content_i_value}<br>\n"
@@ -476,7 +474,6 @@ class ScrapedArticle:
             getattr(self, "article_title__scrape", "").lower(),
         ]
         summary_texts = [
-            getattr(self, "article_summary__feed", "").lower(),
             getattr(self, "article_summary_text__feed", "").lower(),
             getattr(self, "article_summary__meta", "").lower(),
             getattr(self, "article_summary__scrape", "").lower(),
@@ -560,12 +557,10 @@ class ScrapedArticle:
                 "article_summary__scrape",
                 "article_summary_text__feed",
             ]
-        elif (
-            getattr(self, "article_summary__feed", "") != ""
-            and lxml.html.fromstring(
-                getattr(self, "article_summary__feed", "empty")
-            ).find(".//*")
-            is not None
+        elif getattr(self, "article_summary__feed", "") != "" and bool(
+            BeautifulSoup(
+                getattr(self, "article_summary__feed", "empty"), "html.parser"
+            ).find()
         ):
             # if summary from feed is html prefer <meta> tag summary
             prio_order = [
