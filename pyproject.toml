@@ -1,31 +1,19 @@
 # Settings for code style formatting - activate code styling with "pre-commit install" in your cmd/terminal
-[flake8]
-max-line-length = 120
-extend-ignore = E266,E203,E701
-exclude = data
-
-[black]
-max-line-length = 120
-
-[pycodestyle]
-max-line-length = 120
-ignore = E203,E701
-
-[pylint.FORMAT]
-max-line-length = 120
+[tool.ruff]
+line-length = 120
+target-version = "py311"
 
 [mypy]
 ignore_missing_imports = true
-exclude = data
+exclude = ["data"]
 pretty = true
 
 [mirrors-mypy]
 ignore_missing_imports = true
-exclude = data
+exclude = ["data"]
 pretty = true
-additional_dependencies : [ types-pytz==2023.3.1.1, types-requests==2.31.0.4 ]
 
-[tool:interrogate]
+[tool.interrogate]
 ignore-module = true
 ignore-init-method = true
 ignore-init-module = true

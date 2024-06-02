@@ -53,9 +53,7 @@ def update_feeds():
     feeds = Feed.objects.filter(active=True, feed_type="rss")
     if settings.TESTING:
         # when testing is turned on only fetch 10% of feeds to not having to wait too long
-        feeds = [
-            feeds[i] for i in range(0, len(feeds), len(feeds) // (len(feeds) // 10))
-        ]
+        feeds = [feeds[i] for i in range(0, len(feeds), len(feeds) // (len(feeds) // 10))]
     force_refetch = os.getenv("FORCE_REFETCH", "False").lower() == "true"
 
     added_articles = 0
@@ -74,11 +72,7 @@ def update_feeds():
             .exclude(min_article_relevance__isnull=True)
             .exclude(content_type="video")
             .annotate(feed_count=Count("feedposition"))
-            .annotate(
-                calc_rel_feed_pos=F("min_feed_position")
-                * 1000
-                / (F("max_importance") + 4)
-            )
+            .annotate(calc_rel_feed_pos=F("min_feed_position") * 1000 / (F("max_importance") + 4))
             .order_by(
                 "-calc_rel_feed_pos",
                 "feed_count",
@@ -93,8 +87,7 @@ def update_feeds():
                 min(
                     float(
                         round(
-                            (len_articles - i)
-                            * float(getattr(article, "min_article_relevance")),
+                            (len_articles - i) * float(getattr(article, "min_article_relevance")),
                             6,
                         )
                     ),
@@ -114,9 +107,7 @@ def update_feeds():
         )
     else:
         min_article_relevance = (
-            Article.objects.filter(
-                categories__icontains="FRONTPAGE", min_article_relevance__isnull=False
-            )
+            Article.objects.filter(categories__icontains="FRONTPAGE", min_article_relevance__isnull=False)
             .order_by("min_article_relevance")[20]
             .min_article_relevance
         )
@@ -127,18 +118,11 @@ def update_feeds():
             min_article_relevance__isnull=False,
             content_type="article",
         ).filter(
-            Q(
-                Q(categories__icontains="FRONTPAGE")
-                & Q(min_article_relevance__lte=min_article_relevance)
-            )
+            Q(Q(categories__icontains="FRONTPAGE") & Q(min_article_relevance__lte=min_article_relevance))
             | Q(
                 Q(categories__icontains="SIDEBAR")
                 & Q(publisher__renowned__gte=2)
-                & Q(
-                    pub_date__gte=settings.TIME_ZONE_OBJ.localize(
-                        datetime.datetime.now() - datetime.timedelta(days=2)
-                    )
-                )
+                & Q(pub_date__gte=settings.TIME_ZONE_OBJ.localize(datetime.datetime.now() - datetime.timedelta(days=2)))
             )
         )
 
@@ -148,9 +132,7 @@ def update_feeds():
         Article.objects.filter(
             min_article_relevance__isnull=True,
             feedposition=None,
-            added_date__lte=settings.TIME_ZONE_OBJ.localize(
-                datetime.datetime.now() - datetime.timedelta(days=21)
-            ),
+            added_date__lte=settings.TIME_ZONE_OBJ.localize(datetime.datetime.now() - datetime.timedelta(days=21)),
         )
         .exclude(read_later=True)
         .exclude(archive=True)
@@ -161,10 +143,7 @@ def update_feeds():
     else:
         print("No old articles to delete")
 
-    print(
-        f"Refreshed articles and added {added_articles} articles in"
-        f" {int(end_time - start_time)} seconds"
-    )
+    print(f"Refreshed articles and added {added_articles} articles in" f" {int(end_time - start_time)} seconds")
 
     # connection.close()
 
@@ -187,9 +166,7 @@ def calcualte_relevance(publisher, feed, feed_position, hash, pub_date, article_
     if pub_date is None:
         article_age = 3
     else:
-        article_age = (
-            settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()) - pub_date
-        ).total_seconds() / 3600
+        article_age = (settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()) - pub_date).total_seconds() / 3600
 
     factor_publisher__renowned = {
         3: 2 / 9,  # Top Publisher = 4.5x
@@ -310,9 +287,7 @@ def add_ai_summary(article_obj_lst):
                     ],
                 )
                 article_summary = completion.choices[0].message.content
-                article_summary = article_summary.replace("- ", "<li>").replace(
-                    "\n", "</li>\n"
-                )
+                article_summary = article_summary.replace("- ", "<li>").replace("\n", "</li>\n")
                 article_summary = "<ul>\n" + article_summary + "</li>\n</ul>"
                 this_article_cost = round(
                     float(
@@ -334,9 +309,7 @@ def add_ai_summary(article_obj_lst):
                 print(f"Error getting AI article summary for {article_obj}:", e)
                 logging.extend(["ERROR", str(0)])
 
-            with open(
-                str(settings.BASE_DIR) + "/data/ai_summaries.csv", "a+"
-            ) as myfile:
+            with open(str(settings.BASE_DIR) + "/data/ai_summaries.csv", "a+") as myfile:
                 myfile.write(";".join(logging) + "\n")
 
         TOTAL_API_COST += THIS_RUN_API_COST
@@ -356,35 +329,23 @@ def fetch_feed(feed, force_refetch):
 
     feed_url = feed.url
     if "http://FEED-CREATOR.local" in feed_url:
-        feed_url = feed_url.replace(
-            "http://FEED-CREATOR.local", settings.FEED_CREATOR_URL
-        )
+        feed_url = feed_url.replace("http://FEED-CREATOR.local", settings.FEED_CREATOR_URL)
 
     fetched_feed = feedparser.parse(feed_url)
     fetched_feed__last_updated = []
     if hasattr(fetched_feed.feed, "updated_parsed"):
         fetched_feed__last_updated.append(
-            datetime.datetime.fromtimestamp(
-                time.mktime(fetched_feed.feed.updated_parsed)
-            )
+            datetime.datetime.fromtimestamp(time.mktime(fetched_feed.feed.updated_parsed))
         )
     if hasattr(fetched_feed.feed, "published_parsed"):
         fetched_feed__last_updated.append(
-            datetime.datetime.fromtimestamp(
-                time.mktime(fetched_feed.feed.published_parsed)
-            )
+            datetime.datetime.fromtimestamp(time.mktime(fetched_feed.feed.published_parsed))
         )
     if len(fetched_feed__last_updated) == 0:
         fetched_feed__last_updated.append(datetime.datetime.now())
-    fetched_feed__last_updated = settings.TIME_ZONE_OBJ.localize(
-        max(fetched_feed__last_updated)
-    )
+    fetched_feed__last_updated = settings.TIME_ZONE_OBJ.localize(max(fetched_feed__last_updated))
 
-    if (
-        feed.last_fetched is not None
-        and feed.last_fetched >= fetched_feed__last_updated
-        and force_refetch is False
-    ):
+    if feed.last_fetched is not None and feed.last_fetched >= fetched_feed__last_updated and force_refetch is False:
         fetched_feed.entries = []
         print(
             f"Feed '{feed}' does not require refreshing - already up-to-date "
@@ -396,9 +357,7 @@ def fetch_feed(feed, force_refetch):
 
     for article_feed_position, feed_article in enumerate(fetched_feed.entries, 1):
         scraped_article = ScrapedArticle(feed_model=feed)
-        scraped_article.add_feed_attrs(
-            feed_obj=fetched_feed.feed, article_obj=feed_article
-        )
+        scraped_article.add_feed_attrs(feed_obj=fetched_feed.feed, article_obj=feed_article)
 
         scraped_article__url = scraped_article.article_link__final
         scraped_article__hash = scraped_article.article_hash__final
@@ -408,14 +367,13 @@ def fetch_feed(feed, force_refetch):
         # check if article already exists
         matches = Article.objects.filter(
             guid=scraped_article__guid[:95]
-            if type(scraped_article__guid) is str and len(scraped_article__guid) > 95
+            if isinstance(scraped_article__guid, str) and len(scraped_article__guid) > 95
             else scraped_article__guid
         )
         if len(matches) == 0:
             matches = Article.objects.filter(
                 hash=scraped_article__hash[:100]
-                if type(scraped_article__hash) is str
-                and len(scraped_article__hash) > 100
+                if isinstance(scraped_article__hash, str) and len(scraped_article__hash) > 100
                 else scraped_article__hash
             )
 
@@ -437,8 +395,7 @@ def fetch_feed(feed, force_refetch):
                 or (
                     (
                         (
-                            settings.TIME_ZONE_OBJ.localize(datetime.datetime.now())
-                            - article_obj.pub_date
+                            settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()) - article_obj.pub_date
                         ).total_seconds()
                         / (60 * 60)
                         < 4
@@ -461,9 +418,7 @@ def fetch_feed(feed, force_refetch):
                 article_html_response = requests.get(scraped_article__url, timeout=5)
                 scraped_article.parse_meta_attrs(response_obj=article_html_response)
             except Exception as e:
-                print(
-                    f'Error fetching meta for "{scraped_article.article_title__final}": {e}'
-                )
+                print(f'Error fetching meta for "{scraped_article.article_title__final}": {e}')
             if full_text_scraping and settings.FULL_TEXT_URL is not None:
                 # fetch full-text data
                 try:
@@ -476,15 +431,13 @@ def fetch_feed(feed, force_refetch):
                         full_text_json = full_text_response.json()
                         scraped_article.parse_scrape_attrs(json_dict=full_text_json)
                 except Exception as e:
-                    print(
-                        f'Error fetching full-text for "{scraped_article.article_title__final}": {e}'
-                    )
+                    print(f'Error fetching full-text for "{scraped_article.article_title__final}": {e}')
 
         # create new entry
         if len(matches) == 0:
             article_kwargs = scraped_article.get_final_attrs()
             # if feed is news aggregator - find correct article publisher
-            if type((publisher := article_kwargs["publisher"])) is dict:
+            if isinstance((publisher := article_kwargs["publisher"]), dict):
                 if "link" in publisher:
                     url = ".".join(publisher["link"].split(".")[-2:])
                     matching_publishers = Publisher.objects.filter(link__icontains=url)
@@ -493,9 +446,7 @@ def fetch_feed(feed, force_refetch):
                         article_kwargs["publisher"] = matching_publishers[0]
                     # no existing found - create new
                     else:
-                        publisher_obj = Publisher(
-                            **article_kwargs["publisher"], renowned=-2
-                        )
+                        publisher_obj = Publisher(**article_kwargs["publisher"], renowned=-2)
                         publisher_obj.save()
                         article_kwargs["publisher"] = publisher_obj
                 else:
@@ -549,19 +500,10 @@ def fetch_feed(feed, force_refetch):
         notifications_sent = cache.get("notifications_sent", [])
         if (
             article_obj.pk not in notifications_sent
+            and (article_obj.categories is None or "no push" not in str(article_obj.categories).lower())
             and (
-                article_obj.categories is None
-                or "no push" not in str(article_obj.categories).lower()
-            )
-            and (
-                (
-                    "sidebar" in str(article_obj.categories).lower()
-                    and article_obj.publisher.renowned >= 2
-                )
-                or (
-                    "frontpage" in str(article_obj.categories).lower()
-                    and article_obj.importance_type == "breaking"
-                )
+                ("sidebar" in str(article_obj.categories).lower() and article_obj.publisher.renowned >= 2)
+                or ("frontpage" in str(article_obj.categories).lower() and article_obj.importance_type == "breaking")
                 or (
                     feed.importance == 4
                     and article_feed_position <= 3
@@ -570,16 +512,9 @@ def fetch_feed(feed, force_refetch):
                     and now.hour <= 19
                 )
             )
-            and (
-                settings.TIME_ZONE_OBJ.localize(datetime.datetime.now())
-                - article_obj.added_date
-            ).total_seconds()
-            / 60
+            and (settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()) - article_obj.added_date).total_seconds() / 60
             < 15  # added less than 15min ago
-            and (
-                settings.TIME_ZONE_OBJ.localize(datetime.datetime.now())
-                - article_obj.pub_date
-            ).total_seconds()
+            and (settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()) - article_obj.pub_date).total_seconds()
             / (60 * 60)
             < 72  # published less than 72h/3d ago
         ):
@@ -598,9 +533,7 @@ def fetch_feed(feed, force_refetch):
                             )
                         ),
                         "body": f"{article_obj.title}",
-                        "url": f"/view/{article_obj.pk}/"
-                        if article_obj.has_full_text
-                        else article_obj.link,
+                        "url": f"/view/{article_obj.pk}/" if article_obj.has_full_text else article_obj.link,
                     },
                     ttl=60 * 90,  # keep 90 minutes on server
                 )

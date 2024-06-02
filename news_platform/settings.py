@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
+
 import os
 from pathlib import Path
 from urllib.parse import urlparse
@@ -26,17 +27,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY", "django-insecure-ut^e0pt(8g)wzhok&0hjitv#)c^pcq=#0jj9nx0vx%w_xslr(3"
-)
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-ut^e0pt(8g)wzhok&0hjitv#)c^pcq=#0jj9nx0vx%w_xslr(3")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "true").lower() == "true"
 DEBUG = True
 TESTING = os.environ.get("TESTING", "false").lower() == "true"
-CELERY_TASK_ALWAYS_EAGER = (
-    False  # true to run tasks synchronously for testing and development
-)
+CELERY_TASK_ALWAYS_EAGER = False  # true to run tasks synchronously for testing and development
 print(f'Debug modus is turned {"on" if DEBUG else "off"}')
 
 MAIN_HOST = os.environ.get("MAIN_HOST", "http://localhost")
@@ -92,9 +89,7 @@ INSTALLED_APPS = [
 REST_FRAMEWORK = {
     "DEFAULT_METADATA_CLASS": "rest_framework.metadata.SimpleMetadata",
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
 }
 
 SIMPLE_JWT = {
@@ -116,7 +111,6 @@ MIGRATION_MODULES = {
     "feeds": "data.db_migrations.feeds",
     "preferences": "data.db_migrations.preferences",
     "markets": "data.db_migrations.markets",
-    "django_celery_beat": "data.db_migrations.django_celery_beat",
     "django_celery_beat": "data.db_migrations.django_celery_beat",
     "webpush": "data.db_migrations.webpush",
     "sessions": "data.db_migrations.sessions",
@@ -177,9 +171,7 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": (
-            "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.UserAttributeSimilarityValidator"),
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -235,9 +227,7 @@ PWA_APP_SPLASH_SCREEN = (
                 int(f.split("_")[3].split(".")[0]),
             )
             for f in os.listdir("./static/splashscreens")
-            if os.path.isfile(os.path.join("./static/splashscreens", f))
-            and ".png" in f
-            and len(f.split("_")) == 4
+            if os.path.isfile(os.path.join("./static/splashscreens", f)) and ".png" in f and len(f.split("_")) == 4
         ]
     ]
     if os.path.isdir("./static/splashscreens")
@@ -287,18 +277,12 @@ CACHES = {
 WEBPUSH_SETTINGS = {
     "VAPID_PUBLIC_KEY": os.environ.get("WEBPUSH_PUBLIC_KEY", None),
     "VAPID_PRIVATE_KEY": os.environ.get("WEBPUSH_PRIVATE_KEY", None),
-    "VAPID_ADMIN_EMAIL": os.environ.get(
-        "WEBPUSH_ADMIN_EMAIL", "news-platform@example.com"
-    ),
+    "VAPID_ADMIN_EMAIL": os.environ.get("WEBPUSH_ADMIN_EMAIL", "news-platform@example.com"),
 }
 
 # Custom Variables
-FULL_TEXT_URL = os.environ.get(
-    "FULL_TEXT_URL"
-)  # Instance "http://ftr.fivefilters.org/"
+FULL_TEXT_URL = os.environ.get("FULL_TEXT_URL")  # Instance "http://ftr.fivefilters.org/"
 FEED_CREATOR_URL = os.environ.get("FEED_CREATOR_URL")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-PWA_APP_DESCRIPTION = PWA_APP_NAME = CUSTOM_PLATFORM_NAME = os.getenv(
-    "CUSTOM_PLATFORM_NAME", "Personal News Platform"
-)
+PWA_APP_DESCRIPTION = PWA_APP_NAME = CUSTOM_PLATFORM_NAME = os.getenv("CUSTOM_PLATFORM_NAME", "Personal News Platform")
 SIDEBAR_TITLE = os.getenv("SIDEBAR_TITLE", "Latest News")

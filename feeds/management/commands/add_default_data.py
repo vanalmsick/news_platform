@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """mange.py command add_defaullt_feeds to add default data to database"""
+
 from django.core.management import BaseCommand
 
 from feeds.models import Feed, Publisher
@@ -674,9 +675,7 @@ class Command(BaseCommand):
             },
             {
                 "name": "Politik",
-                "publisher": Publisher.objects.get(
-                    name="Redations Netzwerk Deutschland"
-                ),
+                "publisher": Publisher.objects.get(name="Redations Netzwerk Deutschland"),
                 "url": "https://www.rnd.de/arc/outboundfeeds/rss/category/politik/",
                 "active": True,
                 "feed_ordering": "r",
@@ -686,9 +685,7 @@ class Command(BaseCommand):
             },
             {
                 "name": "Wirtschaft",
-                "publisher": Publisher.objects.get(
-                    name="Redations Netzwerk Deutschland"
-                ),
+                "publisher": Publisher.objects.get(name="Redations Netzwerk Deutschland"),
                 "url": "https://www.rnd.de/arc/outboundfeeds/rss/category/wirtschaft/",
                 "active": True,
                 "feed_ordering": "r",

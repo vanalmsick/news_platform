@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Responaible for home view at base url / """
+"""Responaible for home view at base url /"""
+
 import datetime
 import traceback
 import urllib.parse
@@ -43,25 +44,15 @@ def refresh_all_pages():
 
 def get_stats():
     """Get stats about number of artciles/videos per publisher for relevance ranking"""
-    added_date__lte_2d = settings.TIME_ZONE_OBJ.localize(
-        datetime.datetime.now() - datetime.timedelta(days=2)
-    )
-    added_date__lte_30d = settings.TIME_ZONE_OBJ.localize(
-        datetime.datetime.now() - datetime.timedelta(days=30)
-    )
+    added_date__lte_2d = settings.TIME_ZONE_OBJ.localize(datetime.datetime.now() - datetime.timedelta(days=2))
+    added_date__lte_30d = settings.TIME_ZONE_OBJ.localize(datetime.datetime.now() - datetime.timedelta(days=30))
 
-    all_articles = Article.objects.exclude(content_type="video").filter(
-        pub_date__gte=added_date__lte_2d
-    )
-    all_videos = Article.objects.filter(content_type="video").filter(
-        pub_date__gte=added_date__lte_30d
-    )
+    all_articles = Article.objects.exclude(content_type="video").filter(pub_date__gte=added_date__lte_2d)
+    all_videos = Article.objects.filter(content_type="video").filter(pub_date__gte=added_date__lte_30d)
 
     for content_type, query in [("art", all_articles), ("vid", all_videos)]:
         summary = (
-            query.exclude(feedposition=None)
-            .values("feedposition__feed__publisher__pk")
-            .annotate(count=Count("pk"))
+            query.exclude(feedposition=None).values("feedposition__feed__publisher__pk").annotate(count=Count("pk"))
         )
         for i in summary:
             cache.set(
@@ -104,9 +95,7 @@ def refresh_feeds(self):
             response += "videos refreshed successfully; "
         else:
             print(f"Refeshing videos in {videoRefreshCycleCount - 1} cycles")
-            cache.set(
-                "videoRefreshCycleCount", videoRefreshCycleCount - 1, 60 * 60 * 24
-            )
+            cache.set("videoRefreshCycleCount", videoRefreshCycleCount - 1, 60 * 60 * 24)
             response += "video refresh not required; "
 
         refresh_all_pages()
@@ -140,9 +129,7 @@ def homeView(request, article=None):
 
     # Get Articles
     kwargs_hash, articles, page_num = (
-        get_articles(categories="frontpage")
-        if len(request.GET) == 0
-        else get_articles(**request.GET)
+        get_articles(categories="frontpage") if len(request.GET) == 0 else get_articles(**request.GET)
     )
     _, sidebar, _ = get_articles(special="sidebar", max_length=100)
 
@@ -155,13 +142,8 @@ def homeView(request, article=None):
         page_pagination.append(
             dict(
                 i=i,
-                css_class="active"
-                if i == page_num
-                else ("disabled" if len(articles) < 72 and i > page_num else ""),
-                url="/?"
-                + urllib.parse.urlencode(
-                    {k: ",".join(v) for k, v in url_kwargs.items()}
-                ),
+                css_class="active" if i == page_num else ("disabled" if len(articles) < 72 and i > page_num else ""),
+                url="/?" + urllib.parse.urlencode({k: ",".join(v) for k, v in url_kwargs.items()}),
             )
         )
 
@@ -179,11 +161,7 @@ def homeView(request, article=None):
             "debug": "debug" in request.GET and request.GET["debug"].lower() == "true",
             "authenticated": request.user.is_authenticated,
             "platform_name": settings.CUSTOM_PLATFORM_NAME,
-            "webpush": {
-                "group": "no"
-                if settings.WEBPUSH_SETTINGS["VAPID_PRIVATE_KEY"] is None
-                else "all"
-            },
+            "webpush": {"group": "no" if settings.WEBPUSH_SETTINGS["VAPID_PRIVATE_KEY"] is None else "all"},
             "page_pagination": page_pagination,
             "lastRefreshed": lastRefreshed,
             "navbar": Page.objects.all().order_by("position_index"),
@@ -208,11 +186,7 @@ class RestHomeView(APIView):
 
     def get(self, request, format=None):
         """get method for Django"""
-        _, articles, _ = (
-            get_articles(categories="frontpage")
-            if len(request.GET) == 0
-            else get_articles(**request.GET)
-        )
+        _, articles, _ = get_articles(categories="frontpage") if len(request.GET) == 0 else get_articles(**request.GET)
 
         articles = [
             dict(

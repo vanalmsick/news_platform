@@ -1,4 +1,4 @@
-# This file configures the code-style checks and runs unittests before code changes are git committed and pushed to Github (the file setup.cfg contains additional settings)
+# This file configures the code-style checks and runs unittests before code changes are git committed and pushed to Github (the file pyproject.toml contains additional settings)
 # After git cloning this repo please install all requirements in requirements.txt and requirements-dev.txt and then execute "pre-commit install"
 # Trigger manual run with: pre-commit run --all-files
 # Article that explains this: https://towardsdatascience.com/4-pre-commit-plugins-to-automate-code-reviewing-and-formatting-in-python-c80c6d2e9f5
@@ -29,52 +29,31 @@ repos:
       - id: mixed-line-ending
       - id: no-commit-to-branch
         args: [ --branch, master, --branch, main ]
+  # Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.7
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args: [ --fix ]
+      # Run the formatter.
+      - id: ruff-format
   # Finds and removes unused import statements
   - repo: https://github.com/hadialqattan/pycln
     rev: v2.2.2
     hooks:
       - id: pycln
-  # Sort imports
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        name: isort (python)
-        args: [ "--profile", "black" ]
   # Add static typing to functions/classes
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.5.1
     hooks:
       - id: mypy
-  # Code formatter
-  - repo: https://github.com/ambv/black
-    rev: 23.9.1
-    hooks:
-      - id: black
-  # Detect violations of style rules
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
-    hooks:
-      - id: flake8
+        additional_dependencies: [ types-pytz==2023.3.1.1, types-requests==2.31.0.4 ]
   # Checks codebase for missing docstrings
   - repo: https://github.com/econchick/interrogate
     rev: 1.5.0
     hooks:
       - id: interrogate
-  #  # Analyses the code for for errors and enforces a coding standardwithout actually running it
-  #  - repo: https://github.com/pycqa/pylint
-  #    rev: "v2.17.5"
-  #    hooks:
-  #      - id: pylint
-  #        exclude: "[a-zA-Z]*/(migrations)/(.)*"
-  #        args: [ "--load-plugins=pylint_django", "--django-settings-module=news_platform.settings", "--errors-only" ]
-  #        additional_dependencies: [ pylint_django, ]
-  # Catch security concerns in the code
-  - repo: https://github.com/pycqa/bandit
-    rev: 1.7.5
-    hooks:
-      - id: bandit
-        args: [ "-iii", "-ll", '-q' ]
   # # Run unittests
   # - repo: local
   #   hooks:

@@ -32,9 +32,7 @@ class Publisher(models.Model):
     paywall = models.CharField(max_length=1, choices=YES_NO, default="N")
     renowned = models.SmallIntegerField(choices=RENOWNED_LEVES, default=0)
     UNIQUE_ARTICLE_ID = [("guid", "GUID"), ("url", "URL"), ("title", "Title")]
-    unique_article_id = models.CharField(
-        choices=UNIQUE_ARTICLE_ID, default="guid", max_length=5
-    )
+    unique_article_id = models.CharField(choices=UNIQUE_ARTICLE_ID, default="guid", max_length=5)
     language = models.CharField(max_length=5, default="en", blank=True)
 
     def __str__(self):

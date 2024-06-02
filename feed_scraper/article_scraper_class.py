@@ -185,33 +185,24 @@ class ScrapedArticle:
 
         # KEYS_USED = []
         for key_src, key_dest in translate_dict.items():
-            if (
-                value := obj.get(key_src, None)
-                if type(obj) is dict
-                else getattr(obj, key_src, None)
-            ) is not None:
+            if (value := obj.get(key_src, None) if isinstance(obj, dict) else getattr(obj, key_src, None)) is not None:
                 # convert struct_time to datetime
-                if type(value) is time.struct_time:
+                if isinstance(value, time.struct_time):
                     value = datetime.datetime.fromtimestamp(time.mktime(value))
 
                 # make datetime timezone aware
                 value = ensure_dt_is_tz_aware(value)
 
                 # convert non-list items to lists
-                if "lst" in key_dest and type(value) is not list:
+                if "lst" in key_dest and not isinstance(value, list):
                     value = [value]
 
                 # don't update item if paywall
-                if type(value) is str and any(
-                    [i in value.lower() for i in PAYWALL_KEYWORDS]
-                ):
+                if isinstance(value, str) and any([i in value.lower() for i in PAYWALL_KEYWORDS]):
                     self.paywall = True
                 else:
                     # set/update attr
-                    if (
-                        "lst" in key_dest
-                        and (value_curr := getattr(self, key_dest, None)) is not None
-                    ):
+                    if "lst" in key_dest and (value_curr := getattr(self, key_dest, None)) is not None:
                         setattr(self, key_dest, [*value_curr, *value])
                     else:
                         setattr(self, key_dest, value)
@@ -266,29 +257,20 @@ class ScrapedArticle:
                     self.article_summary_html__feed,
                     self.article_summary_text__feed,
                 ) = html_clean_up(article_html)
-                self.article_summary_text__feed = " ".join(
-                    html.unescape(self.article_summary_text__feed).split()
-                )
+                self.article_summary_text__feed = " ".join(html.unescape(self.article_summary_text__feed).split())
             else:
                 self.article_summary_text__feed = article_html
                 self.article_summary_html__feed = f"<p>{article_html}</p>"
 
         # convert content list to html and text
-        if (
-            content_lst := getattr(self, "article_content_lst__feed", None)
-        ) is not None:
+        if (content_lst := getattr(self, "article_content_lst__feed", None)) is not None:
             new_content_html = ""
             for content_i in content_lst:
                 content_i_value = content_i.get("value", "")
                 content_i_is_html = "html" in content_i.get("type", "") or (
-                    content_i_value != ""
-                    and bool(BeautifulSoup(content_i_value, "html.parser").find())
+                    content_i_value != "" and bool(BeautifulSoup(content_i_value, "html.parser").find())
                 )
-                new_content_html += (
-                    f"{content_i_value}<br>\n"
-                    if content_i_is_html
-                    else f"<p>{content_i_value}</p>\n"
-                )
+                new_content_html += f"{content_i_value}<br>\n" if content_i_is_html else f"<p>{content_i_value}</p>\n"
             (
                 self.article_content_html__feed,
                 self.article_content_text__feed,
@@ -343,9 +325,7 @@ class ScrapedArticle:
             value = datetime.datetime.fromisoformat(value)
             value = ensure_dt_is_tz_aware(value)
             setattr(self, "article_last_updated__scrape", value)
-        if (
-            article_html := getattr(self, "article_content_html__scrape", None)
-        ) is not None:
+        if (article_html := getattr(self, "article_content_html__scrape", None)) is not None:
             (
                 self.article_content_html__scrape,
                 self.article_content_text__scrape,
@@ -400,60 +380,28 @@ class ScrapedArticle:
         if (tmp_img := getattr(self, "article_thumbnail__scrape", None)) is not None:
             if ".svg" not in tmp_img:
                 img_lst.append(tmp_img)
-        if (
-            tmp_img_lst := getattr(self, "article_thumbnail_lst__feed", None)
-        ) is not None:
+        if (tmp_img_lst := getattr(self, "article_thumbnail_lst__feed", None)) is not None:
             for tmp_img_i in tmp_img_lst:
-                if (
-                    "url" in tmp_img_i
-                    and is_valid_url(tmp_img_i["url"])
-                    and ".svg" not in tmp_img_i["url"]
-                ):
+                if "url" in tmp_img_i and is_valid_url(tmp_img_i["url"]) and ".svg" not in tmp_img_i["url"]:
                     img_lst.append(tmp_img_i["url"])
-                elif (
-                    "href" in tmp_img_i
-                    and is_valid_url(tmp_img_i["href"])
-                    and ".svg" not in tmp_img_i["href"]
-                ):
+                elif "href" in tmp_img_i and is_valid_url(tmp_img_i["href"]) and ".svg" not in tmp_img_i["href"]:
                     img_lst.append(tmp_img_i["href"])
-                elif (
-                    "src" in tmp_img_i
-                    and is_valid_url(tmp_img_i["src"])
-                    and ".svg" not in tmp_img_i["src"]
-                ):
+                elif "src" in tmp_img_i and is_valid_url(tmp_img_i["src"]) and ".svg" not in tmp_img_i["src"]:
                     img_lst.append(tmp_img_i["src"])
-        if (
-            tmp_content_html := getattr(self, "article_summary_html__feed", None)
-        ) is not None:
+        if (tmp_content_html := getattr(self, "article_summary_html__feed", None)) is not None:
             tmp_soup = BeautifulSoup(tmp_content_html, "html.parser")
             for tmp_img in tmp_soup.find_all("img"):
-                if (
-                    "src" in tmp_img.attrs
-                    and is_valid_url(tmp_img["src"])
-                    and ".svg" not in tmp_img["src"]
-                ):
+                if "src" in tmp_img.attrs and is_valid_url(tmp_img["src"]) and ".svg" not in tmp_img["src"]:
                     img_lst.append(tmp_img["src"])
-        if (
-            tmp_content_html := getattr(self, "article_content_html__feed", None)
-        ) is not None:
+        if (tmp_content_html := getattr(self, "article_content_html__feed", None)) is not None:
             tmp_soup = BeautifulSoup(tmp_content_html, "html.parser")
             for tmp_img in tmp_soup.find_all("img"):
-                if (
-                    "src" in tmp_img.attrs
-                    and is_valid_url(tmp_img["src"])
-                    and ".svg" not in tmp_img["src"]
-                ):
+                if "src" in tmp_img.attrs and is_valid_url(tmp_img["src"]) and ".svg" not in tmp_img["src"]:
                     img_lst.append(tmp_img["src"])
-        if (
-            tmp_content_html := getattr(self, "article_content_html__scrape", None)
-        ) is not None:
+        if (tmp_content_html := getattr(self, "article_content_html__scrape", None)) is not None:
             tmp_soup = BeautifulSoup(tmp_content_html, "html.parser")
             for tmp_img in tmp_soup.find_all("img"):
-                if (
-                    "src" in tmp_img.attrs
-                    and is_valid_url(tmp_img["src"])
-                    and ".svg" not in tmp_img["src"]
-                ):
+                if "src" in tmp_img.attrs and is_valid_url(tmp_img["src"]) and ".svg" not in tmp_img["src"]:
                     img_lst.append(tmp_img["src"])
         return img_lst
 
@@ -480,18 +428,10 @@ class ScrapedArticle:
         ]
         # ToDo: add tag check too
 
-        if any(
-            [
-                any([i in j for j in title_texts] + [i in j for j in summary_texts])
-                for i in BREAKING_NEWS_KEYWORDS
-            ]
-        ):
+        if any([any([i in j for j in title_texts] + [i in j for j in summary_texts]) for i in BREAKING_NEWS_KEYWORDS]):
             return "breaking"
         elif any(
-            [
-                any([i in j for j in title_texts] + [i in j for j in summary_texts])
-                for i in HEADLINE_NEWS_KEYWORDS
-            ]
+            [any([i in j for j in title_texts] + [i in j for j in summary_texts]) for i in HEADLINE_NEWS_KEYWORDS]
         ):
             return "headline"
         else:
@@ -512,18 +452,10 @@ class ScrapedArticle:
         ]
         # ToDo: add tag check too
 
-        if any(
-            [
-                any([i in j for j in title_texts] + [i in j for j in summary_texts])
-                for i in LIVE_TICKER_KEYWORDS
-            ]
-        ):
+        if any([any([i in j for j in title_texts] + [i in j for j in summary_texts]) for i in LIVE_TICKER_KEYWORDS]):
             return "ticker"
         elif any(
-            [
-                any([i in j for j in title_texts] + [i in j for j in summary_texts])
-                for i in BRIEFING_NEWS_KEYWORDS
-            ]
+            [any([i in j for j in title_texts] + [i in j for j in summary_texts]) for i in BRIEFING_NEWS_KEYWORDS]
         ):
             return "briefing"
         else:
@@ -558,9 +490,7 @@ class ScrapedArticle:
                 "article_summary_text__feed",
             ]
         elif getattr(self, "article_summary__feed", "") != "" and bool(
-            BeautifulSoup(
-                getattr(self, "article_summary__feed", "empty"), "html.parser"
-            ).find()
+            BeautifulSoup(getattr(self, "article_summary__feed", "empty"), "html.parser").find()
         ):
             # if summary from feed is html prefer <meta> tag summary
             prio_order = [
@@ -583,11 +513,7 @@ class ScrapedArticle:
         if summary is None:
             return False
         else:
-            if (
-                content is not None
-                and len(summary) > 6
-                and summary.lower()[:-5] in content.lower()
-            ):
+            if content is not None and len(summary) > 6 and summary.lower()[:-5] in content.lower():
                 return False
             else:
                 return True
@@ -596,9 +522,7 @@ class ScrapedArticle:
     def article_content_source__final(self):
         content_feed = getattr(self, "article_content_text__feed", None)
         content_scrape = getattr(self, "article_content_text__scrape", None)
-        if (
-            content_feed is not None and content_scrape is not None
-        ):  # if several sources
+        if content_feed is not None and content_scrape is not None:  # if several sources
             if len(content_scrape) > len(content_feed) * 1.25:
                 return "scrape"
             else:
@@ -656,13 +580,7 @@ class ScrapedArticle:
         ]
         all_three_agree = all(
             [
-                all(
-                    [
-                        j[:2].lower() == i[:2].lower()
-                        for j in language_lst
-                        if j is not None and len(j) >= 2
-                    ]
-                )
+                all([j[:2].lower() == i[:2].lower() for j in language_lst if j is not None and len(j) >= 2])
                 for i in language_lst
                 if i is not None and len(i) >= 2
             ]
@@ -675,9 +593,7 @@ class ScrapedArticle:
                     return language_i.replace("_", "-")
 
         # if no suitable language attr found - detect yourself
-        lang = langid.classify(
-            f"{self.article_title__final}\n{self.article_summary__final}"
-        )
+        lang = langid.classify(f"{self.article_title__final}\n{self.article_summary__final}")
         return f"{lang[0]}-XX"
 
     @property
@@ -730,25 +646,14 @@ class ScrapedArticle:
         tags = (
             [
                 {"term": i}
-                for i in (
-                    []
-                    if self.current_categories is None
-                    else self.current_categories.split(";")
-                )
-                + (
-                    []
-                    if self.feed_obj__model is None
-                    else self.feed_obj__model.source_categories.split(";")
-                )
+                for i in ([] if self.current_categories is None else self.current_categories.split(";"))
+                + ([] if self.feed_obj__model is None else self.feed_obj__model.source_categories.split(";"))
             ]
             + getattr(self, "feed_tag_lst__feed", [])
             + getattr(self, "article_tag_lst__feed", [])
             + [
                 {"term": i}
-                for i in getattr(self, "article_tag_lst__meta", "")
-                .replace(", ", ";")
-                .replace(",", ";")
-                .split(";")
+                for i in getattr(self, "article_tag_lst__meta", "").replace(", ", ";").replace(",", ";").split(";")
                 if i != ""
             ]
         )

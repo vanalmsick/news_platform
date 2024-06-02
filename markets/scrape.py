@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Data scraping for Market Data i.e. Stock/FX/Comm prices"""
+
 import datetime
 import traceback
 from io import StringIO
@@ -44,29 +45,13 @@ def __get_bonds(tickers, headers={"User-agent": "Mozilla/5.0"}):
         for ticker in tickers:
             if ticker.ticker in data:
                 data_yield = (
-                    float(
-                        "".join(
-                            [
-                                i
-                                for i in data[ticker.ticker]["Yield"]
-                                if i.isdigit() or i == "-" or i == "."
-                            ]
-                        )
-                    )
-                    if type(data[ticker.ticker]["Yield"]) is str
+                    float("".join([i for i in data[ticker.ticker]["Yield"] if i.isdigit() or i == "-" or i == "."]))
+                    if isinstance(data[ticker.ticker]["Yield"], str)
                     else data[ticker.ticker]["Yield"]
                 )
                 data_day = (
-                    float(
-                        "".join(
-                            [
-                                i
-                                for i in data[ticker.ticker]["Day"]
-                                if i.isdigit() or i == "-" or i == "."
-                            ]
-                        )
-                    )
-                    if type(data[ticker.ticker]["Day"]) is str
+                    float("".join([i for i in data[ticker.ticker]["Day"] if i.isdigit() or i == "-" or i == "."]))
+                    if isinstance(data[ticker.ticker]["Day"], str)
                     else data[ticker.ticker]["Day"]
                 )
                 obj = DataEntry(
@@ -101,16 +86,11 @@ def __get_quote_table(ticker, headers={"User-agent": "Mozilla/5.0"}):
 
     converted_data = {}
     for k, v in data.items():
-        if type(v) is str:
+        if isinstance(v, str):
             if v != "":
                 d = v.split(" - ")
                 for i, j in enumerate(d):
-                    if (
-                        j.replace(",", "")
-                        .replace("-", "", 1)
-                        .replace(".", "", 1)
-                        .isdigit()
-                    ):
+                    if j.replace(",", "").replace("-", "", 1).replace(".", "", 1).isdigit():
                         d[i] = float(j.replace(",", ""))
                 converted_data[k] = d[0] if len(d) == 1 else d
         else:
@@ -220,9 +200,7 @@ def scrape_market_data():
 
     # delete market data older than 45 days
     DataEntry.objects.filter(
-        ref_date_time__lte=settings.TIME_ZONE_OBJ.localize(
-            datetime.datetime.now() - datetime.timedelta(days=45)
-        )
+        ref_date_time__lte=settings.TIME_ZONE_OBJ.localize(datetime.datetime.now() - datetime.timedelta(days=45))
     ).delete()
 
     print("Market Data was successfully refreshed.")

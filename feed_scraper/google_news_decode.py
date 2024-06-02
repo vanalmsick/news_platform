@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Decode encoded Google News entry URLs."""
+
 import base64
 import functools
 import re
@@ -7,9 +8,7 @@ import re
 # Ref: https://stackoverflow.com/a/59023463/
 
 _ENCODED_URL_PREFIX = "https://news.google.com/rss/articles/"
-_ENCODED_URL_RE = re.compile(
-    rf"^{re.escape(_ENCODED_URL_PREFIX)}(?P<encoded_url>[^?]+)"
-)
+_ENCODED_URL_RE = re.compile(rf"^{re.escape(_ENCODED_URL_PREFIX)}(?P<encoded_url>[^?]+)")
 _DECODED_URL_RE = re.compile(rb'^\x08\x13".+?(?P<primary_url>http[^\xd2]+)\xd2\x01')
 
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 ASGI config for news_platform project.
 

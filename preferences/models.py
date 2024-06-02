@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """models for App called Preferences"""
+
 from urllib.parse import parse_qs
 
 from django.db import models
@@ -7,13 +8,9 @@ from django.db import models
 
 def url_parm_encode(**kwargs):
     """function too translate url paramaters from GET request in dictionary to hash string"""
-    kwargs = {
-        k: ",".join(v if type(v) is list else [v]).split(",") for k, v in kwargs.items()
-    }
-    kwargs = {k: [v] if type(v) is str else v for k, v in kwargs.items()}
-    kwargs_hash = "articles_" + str(
-        {k.lower(): [i.lower() for i in sorted(v)] for k, v in kwargs.items()}
-    )
+    kwargs = {k: ",".join(v if isinstance(v, list) else [v]).split(",") for k, v in kwargs.items()}
+    kwargs = {k: [v] if isinstance(v, str) else v for k, v in kwargs.items()}
+    kwargs_hash = "articles_" + str({k.lower(): [i.lower() for i in sorted(v)] for k, v in kwargs.items()})
     kwargs_hash = "".join([i if i.isalnum() else "_" for i in kwargs_hash])
     return kwargs_hash, kwargs
 
