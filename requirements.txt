@@ -14,7 +14,7 @@ django-filter
 openai>=1.0.0
 ratelimit
 scrapetube
-django-import-export
+django-import-export>=4.0.0
 langid
 python-dotenv
 supervisor
@@ -29,4 +29,4 @@ sentry-sdk[django]
 sentry-sdk[celery]
 psycopg2-binary
 drf-spectacular
-django-unfold>=4.0.0
+django-unfold
