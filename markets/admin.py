@@ -4,6 +4,8 @@
 from django.contrib import admin
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
+from unfold.admin import ModelAdmin
+from unfold.contrib.import_export.forms import ExportForm, ImportForm
 
 from .models import DataGroup, DataSource
 
@@ -19,7 +21,7 @@ class DataSourceImportExport(resources.ModelResource):
 
 
 @admin.register(DataSource)
-class DataSourceAdmin(ImportExportModelAdmin):
+class DataSourceAdmin(ModelAdmin, ImportExportModelAdmin):
     """Main Admin Feed View"""
 
     list_display = [
@@ -29,11 +31,14 @@ class DataSourceAdmin(ImportExportModelAdmin):
         "ticker",
     ]
     ordering = ("group__position", "-pinned", "name")
-    resource_classes = [DataSource]
+    resource_classes = [DataSourceImportExport]
+
+    import_form_class = ImportForm
+    export_form_class = ExportForm
 
 
 @admin.register(DataGroup)
-class DataGroupAdmin(admin.ModelAdmin):
+class DataGroupAdmin(ModelAdmin):
     """Main Admin Article View"""
 
     list_display = [

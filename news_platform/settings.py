@@ -65,6 +65,13 @@ else:
 # Application definition
 
 INSTALLED_APPS = [
+    "unfold",  # before django.contrib.admin
+    "unfold.contrib.filters",  # optional, if special filters are needed
+    "unfold.contrib.forms",  # optional, if special form elements are needed
+    # "unfold.contrib.inlines",  # optional, if special inlines are needed
+    "unfold.contrib.import_export",  # optional, if django-import-export package is used
+    "unfold.contrib.guardian",  # optional, if django-guardian package is used
+    "unfold.contrib.simple_history",  # optional, if django-simple-history package is used
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -247,6 +254,30 @@ PWA_APP_DIR = "ltr"
 PWA_APP_LANG = LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "en-UK")
 ALLOWED_LANGUAGES = os.getenv("ALLOWED_LANGUAGES", "*")
 LOGOUT_REDIRECT_URL = "/"
+
+UNFOLD = {
+    "SITE_TITLE": "News Platform Admin Space",
+    "SITE_HEADER": "News Platform Admin Space",
+    "SITE_SYMBOL": "news",  # symbol from icon set
+    "SHOW_HISTORY": True,  # show/hide "History" button, default: True
+    "SHOW_VIEW_ON_SITE": True,  # show/hide "View on site" button, default: True
+    "COLORS": {
+        "primary": {
+            "50": "250 245 255",
+            "100": "243 232 255",
+            "200": "12 105 245",
+            "300": "10 87 201",
+            "400": "9 77 179",
+            "500": "8 70 163",
+            "600": "8 65 150",
+            "700": "7 60 140",
+            "800": "6 52 120",
+            "900": "88 28 135",
+            "950": "5 47 110",
+        },
+    },
+}
+
 
 TIME_ZONE = CELERY_TIMEZONE = os.getenv("TIME_ZONE", "Europe/London")
 TIME_ZONE_OBJ = pytz.timezone(TIME_ZONE)

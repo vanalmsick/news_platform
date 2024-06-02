@@ -29,3 +29,4 @@ sentry-sdk[django]
 sentry-sdk[celery]
 psycopg2-binary
 drf-spectacular
+django-unfold>=4.0.0
