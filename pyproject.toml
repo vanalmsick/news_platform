@@ -23,3 +23,5 @@ ignore-nested-classes = true
 fail-under = 80
 verbose = 2
 exclude = ["data"]
+
+[tool.setuptools_scm]
