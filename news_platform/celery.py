@@ -43,9 +43,10 @@ def is_task_already_executing(task_name: str) -> bool:
         running currently.
     """
     active_tasks = app.control.inspect().active()
+    task_count = 0
     for worker, running_tasks in active_tasks.items():
         for task in running_tasks:
             if task["name"] == task_name:
-                return True
+                task_count += 1
 
-    return False
+    return task_count > 1
