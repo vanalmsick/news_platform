@@ -65,7 +65,13 @@ if __name__ == "__main__":
         print("Django Server was started at: " f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}")
         warnings.filterwarnings(
             "ignore",
-            message=("Using slow pure-python SequenceMatcher. " "Install python-Levenshtein to remove this warning"),
+            message=("Using slow pure-python SequenceMatcher. Install python-Levenshtein to remove this warning"),
+        )
+        warnings.filterwarnings(
+            "ignore",
+            message=(
+                "The input looks more like a filename than markup. You may want to open this file and pass the filehandle into Beautiful Soup."
+            ),
         )
 
         # Make data model migrations
