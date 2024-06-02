@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
+
 import os
 from pathlib import Path
 from urllib.parse import urlparse
@@ -26,17 +27,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY", "django-insecure-ut^e0pt(8g)wzhok&0hjitv#)c^pcq=#0jj9nx0vx%w_xslr(3"
-)
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-ut^e0pt(8g)wzhok&0hjitv#)c^pcq=#0jj9nx0vx%w_xslr(3")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "true").lower() == "true"
 DEBUG = True
 TESTING = os.environ.get("TESTING", "false").lower() == "true"
-CELERY_TASK_ALWAYS_EAGER = (
-    False  # true to run tasks synchronously for testing and development
-)
+CELERY_TASK_ALWAYS_EAGER = False  # true to run tasks synchronously for testing and development
 print(f'Debug modus is turned {"on" if DEBUG else "off"}')
 
 MAIN_HOST = os.environ.get("MAIN_HOST", "http://localhost")
@@ -68,6 +65,13 @@ else:
 # Application definition
 
 INSTALLED_APPS = [
+    "unfold",  # before django.contrib.admin
+    "unfold.contrib.filters",  # optional, if special filters are needed
+    "unfold.contrib.forms",  # optional, if special form elements are needed
+    # "unfold.contrib.inlines",  # optional, if special inlines are needed
+    "unfold.contrib.import_export",  # optional, if django-import-export package is used
+    "unfold.contrib.guardian",  # optional, if django-guardian package is used
+    "unfold.contrib.simple_history",  # optional, if django-simple-history package is used
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -87,14 +91,21 @@ INSTALLED_APPS = [
     "preferences",
     "markets",
     "django_celery_beat",
+    "drf_spectacular",
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_METADATA_CLASS": "rest_framework.metadata.SimpleMetadata",
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Personal News Platform API",
+    "DESCRIPTION": "News Aggregator - Aggregates news articles from several RSS feeds, fetches full-text if possible, sorts them by relevance (based on user settings), and display on distraction-free homepage.",
+    "VERSION": "API-1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 SIMPLE_JWT = {
@@ -116,7 +127,6 @@ MIGRATION_MODULES = {
     "feeds": "data.db_migrations.feeds",
     "preferences": "data.db_migrations.preferences",
     "markets": "data.db_migrations.markets",
-    "django_celery_beat": "data.db_migrations.django_celery_beat",
     "django_celery_beat": "data.db_migrations.django_celery_beat",
     "webpush": "data.db_migrations.webpush",
     "sessions": "data.db_migrations.sessions",
@@ -177,9 +187,7 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": (
-            "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
-        ),
+        "NAME": ("django.contrib.auth.password_validation.UserAttributeSimilarityValidator"),
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -235,9 +243,7 @@ PWA_APP_SPLASH_SCREEN = (
                 int(f.split("_")[3].split(".")[0]),
             )
             for f in os.listdir("./static/splashscreens")
-            if os.path.isfile(os.path.join("./static/splashscreens", f))
-            and ".png" in f
-            and len(f.split("_")) == 4
+            if os.path.isfile(os.path.join("./static/splashscreens", f)) and ".png" in f and len(f.split("_")) == 4
         ]
     ]
     if os.path.isdir("./static/splashscreens")
@@ -248,6 +254,30 @@ PWA_APP_DIR = "ltr"
 PWA_APP_LANG = LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "en-UK")
 ALLOWED_LANGUAGES = os.getenv("ALLOWED_LANGUAGES", "*")
 LOGOUT_REDIRECT_URL = "/"
+
+UNFOLD = {
+    "SITE_TITLE": "News Platform Admin Space",
+    "SITE_HEADER": "News Platform Admin Space",
+    "SITE_SYMBOL": "news",  # symbol from icon set
+    "SHOW_HISTORY": True,  # show/hide "History" button, default: True
+    "SHOW_VIEW_ON_SITE": True,  # show/hide "View on site" button, default: True
+    "COLORS": {
+        "primary": {
+            "50": "250 245 255",
+            "100": "243 232 255",
+            "200": "12 105 245",
+            "300": "10 87 201",
+            "400": "9 77 179",
+            "500": "8 70 163",
+            "600": "8 65 150",
+            "700": "7 60 140",
+            "800": "6 52 120",
+            "900": "88 28 135",
+            "950": "5 47 110",
+        },
+    },
+}
+
 
 TIME_ZONE = CELERY_TIMEZONE = os.getenv("TIME_ZONE", "Europe/London")
 TIME_ZONE_OBJ = pytz.timezone(TIME_ZONE)
@@ -287,18 +317,12 @@ CACHES = {
 WEBPUSH_SETTINGS = {
     "VAPID_PUBLIC_KEY": os.environ.get("WEBPUSH_PUBLIC_KEY", None),
     "VAPID_PRIVATE_KEY": os.environ.get("WEBPUSH_PRIVATE_KEY", None),
-    "VAPID_ADMIN_EMAIL": os.environ.get(
-        "WEBPUSH_ADMIN_EMAIL", "news-platform@example.com"
-    ),
+    "VAPID_ADMIN_EMAIL": os.environ.get("WEBPUSH_ADMIN_EMAIL", "news-platform@example.com"),
 }
 
 # Custom Variables
-FULL_TEXT_URL = os.environ.get(
-    "FULL_TEXT_URL"
-)  # Instance "http://ftr.fivefilters.org/"
+FULL_TEXT_URL = os.environ.get("FULL_TEXT_URL")  # Instance "http://ftr.fivefilters.org/"
 FEED_CREATOR_URL = os.environ.get("FEED_CREATOR_URL")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-PWA_APP_DESCRIPTION = PWA_APP_NAME = CUSTOM_PLATFORM_NAME = os.getenv(
-    "CUSTOM_PLATFORM_NAME", "Personal News Platform"
-)
+PWA_APP_DESCRIPTION = PWA_APP_NAME = CUSTOM_PLATFORM_NAME = os.getenv("CUSTOM_PLATFORM_NAME", "Personal News Platform")
 SIDEBAR_TITLE = os.getenv("SIDEBAR_TITLE", "Latest News")

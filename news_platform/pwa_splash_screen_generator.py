@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Script to automatically create Splash Screens for iPhone PWA"""
+
 import os
 
 from PIL import Image

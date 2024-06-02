@@ -2,12 +2,13 @@
 """Definition of Article View in Django Admin Space"""
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 
 from .models import Article, FeedPosition
 
 
 # Register your models here.
-class FeedPositionInline(admin.TabularInline):
+class FeedPositionInline(TabularInline):
     """Table of feeds to be shown in single-Publisher view"""
 
     model = FeedPosition
@@ -16,7 +17,7 @@ class FeedPositionInline(admin.TabularInline):
 
 
 @admin.register(Article)
-class ArticleAdmin(admin.ModelAdmin):
+class ArticleAdmin(ModelAdmin):
     """Main Admin Article View"""
 
     list_display = [

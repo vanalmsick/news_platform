@@ -24,9 +24,7 @@ class ArticleGroup(models.Model):
     guid = models.CharField(max_length=75, null=True)
     image_url = models.TextField(null=True)
     min_feed_position = models.SmallIntegerField()
-    min_article_relevance = models.DecimalField(
-        null=True, decimal_places=6, max_digits=12
-    )
+    min_article_relevance = models.DecimalField(null=True, decimal_places=6, max_digits=12)
     max_importance = models.SmallIntegerField(choices=NEWS_IMPORTANCE)
     categories = models.CharField(max_length=250, null=True)
     language = models.CharField(max_length=6, null=True)
@@ -41,9 +39,7 @@ class Article(models.Model):
     """Django Model Class for each single article or video"""
 
     publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE)
-    article_group = models.ForeignKey(
-        ArticleGroup, on_delete=models.SET_NULL, null=True, blank=True
-    )
+    article_group = models.ForeignKey(ArticleGroup, on_delete=models.SET_NULL, null=True, blank=True)
 
     title = models.CharField(max_length=200, null=True)
 
@@ -56,18 +52,14 @@ class Article(models.Model):
         ("headline", "Headline/Top Articles"),
         ("normal", "Normal Article"),
     ]
-    importance_type = models.CharField(
-        choices=IMPORTANCE_TYPES, max_length=8, default="normal"
-    )
+    importance_type = models.CharField(choices=IMPORTANCE_TYPES, max_length=8, default="normal")
     CONTENT_TYPES = [
         ("article", "Article"),
         ("ticker", "Live News/Ticker"),
         ("briefing", "Briefing/Newsletter"),
         ("video", "Video"),
     ]
-    content_type = models.CharField(
-        max_length=10, choices=CONTENT_TYPES, default="article"
-    )
+    content_type = models.CharField(max_length=10, choices=CONTENT_TYPES, default="article")
 
     extract = models.CharField(max_length=500, null=True, blank=True)
     has_extract = models.BooleanField(default=True)
@@ -93,9 +85,7 @@ class Article(models.Model):
 
     publisher_article_position = models.SmallIntegerField(null=True)
     min_feed_position = models.SmallIntegerField(null=True)
-    min_article_relevance = models.DecimalField(
-        decimal_places=6, max_digits=12, null=True
-    )
+    min_article_relevance = models.DecimalField(decimal_places=6, max_digits=12, null=True)
     max_importance = models.SmallIntegerField(choices=NEWS_IMPORTANCE, null=True)
 
     mailto_link = models.CharField(max_length=300, null=True)
@@ -104,10 +94,7 @@ class Article(models.Model):
         """Create the caluclated field that stores the mailto link to share an artcile via email"""
         SHARE_EMAIL_SUBJECT = f"{self.publisher.name}: {self.title}"
         SHARE_EMAIL_BODY = (
-            "Hi,\n\nHave you seen this article:\n\n"
-            f"{SHARE_EMAIL_SUBJECT}\n"
-            f"{self.link}\n\n"
-            "Best wishes,\n\n"
+            "Hi,\n\nHave you seen this article:\n\n" f"{SHARE_EMAIL_SUBJECT}\n" f"{self.link}\n\n" "Best wishes,\n\n"
         )
         return (
             "mailto:?subject="
@@ -117,9 +104,7 @@ class Article(models.Model):
         )
 
     def __init__(self, *args, **kwargs):
-        args = [
-            None if i in ["", " "] else i for i in args
-        ]  # ensure blanks '' or ' ' are replaced with None/Null
+        args = [None if i in ["", " "] else i for i in args]  # ensure blanks '' or ' ' are replaced with None/Null
         super(Article, self).__init__(*args, **kwargs)
         # self.__original = self._dict
 

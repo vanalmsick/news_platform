@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Celery task config"""
+
 import os
 
 from celery import Celery

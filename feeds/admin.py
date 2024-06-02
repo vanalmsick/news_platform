@@ -5,13 +5,15 @@ from django.contrib import admin
 from django.contrib.auth.models import Group, User
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
+from unfold.admin import ModelAdmin, TabularInline
+from unfold.contrib.import_export.forms import ExportForm, ImportForm
 
 from .models import Feed, Publisher
 
 # Register your models here.
 
 
-class FeedsInline(admin.TabularInline):
+class FeedsInline(TabularInline):
     """Table of feeds to be shown in single-Publisher view"""
 
     model = Feed
@@ -35,7 +37,7 @@ class PublisherImportExport(resources.ModelResource):
 
 
 @admin.register(Feed)
-class FeedAdmin(ImportExportModelAdmin):
+class FeedAdmin(ModelAdmin, ImportExportModelAdmin):
     """Main Admin Feed View"""
 
     list_display = [
@@ -49,9 +51,12 @@ class FeedAdmin(ImportExportModelAdmin):
     ordering = ("feed_type", "-importance", "-active", "name")
     resource_classes = [FeedImportExport]
 
+    import_form_class = ImportForm
+    export_form_class = ExportForm
+
 
 @admin.register(Publisher)
-class PublisherAdmin(ImportExportModelAdmin):
+class PublisherAdmin(ModelAdmin, ImportExportModelAdmin):
     """Main Admin Publisher View"""
 
     list_display = ["name", "link", "renowned", "paywall", "language"]
@@ -64,6 +69,9 @@ class PublisherAdmin(ImportExportModelAdmin):
         "name",
     )
     resource_classes = [PublisherImportExport]
+
+    import_form_class = ImportForm
+    export_form_class = ExportForm
 
 
 admin.site.unregister(User)

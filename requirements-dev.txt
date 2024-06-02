@@ -1,7 +1,9 @@
 pre-commit
-black
-flake8
-isort
 interrogate
 pycln
 yapf
+ruff
+pydotplus
+mkdocs
+mkdocs-material
+mkdocs-render-swagger-plugin

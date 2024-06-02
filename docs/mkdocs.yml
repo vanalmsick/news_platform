@@ -38,7 +38,8 @@ nav:
   - Article Ranking (ToDo): "todo.md"
   - Developer Guide:
       - Dev Setup (ToDo): "todo.md"
-      - API Reference (ToDo): "todo.md"
+      - Data Structure: "models.md"
+      - API Documentation: "api.md"
       - Contribution Guide (ToDo): "todo.md"
   - Suggest an idea: "https://github.com/vanalmsick/news_platform/discussions/categories/ideas"
 
@@ -51,6 +52,8 @@ markdown_extensions:
 plugins:
   - search
   - offline
+  - render_swagger:
+      allow_arbitrary_locations: true
 
 repo_url: https://github.com/vanalmsick/news_platform
 repo_name: vanalmsick/news_platform

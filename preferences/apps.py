@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 """config for App called Preferences"""
+
 from django.apps import AppConfig
 
 

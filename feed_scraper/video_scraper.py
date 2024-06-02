@@ -34,9 +34,7 @@ def update_videos():
     feeds = Feed.objects.filter(active=True).exclude(feed_type="rss")
     if settings.TESTING:
         # when testing is turned on only fetch 10% of feeds to not having to wait too long
-        feeds = [
-            feeds[i] for i in range(0, len(feeds), len(feeds) // (len(feeds) // 10))
-        ]
+        feeds = [feeds[i] for i in range(0, len(feeds), len(feeds) // (len(feeds) // 10))]
     force_refetch = os.getenv("FORCE_REFETCH", "False").lower() == "true"
 
     added_videos = 0
@@ -44,10 +42,7 @@ def update_videos():
         added_videos += fetch_feed(feed, force_refetch)
 
     end_time = time.time()
-    print(
-        f"Refreshed videos and added {added_videos} videos in"
-        f" {int(end_time - start_time)} seconds"
-    )
+    print(f"Refreshed videos and added {added_videos} videos in" f" {int(end_time - start_time)} seconds")
 
 
 def fetch_feed(feed, force_refetch, max_per_feed=200):
@@ -73,9 +68,7 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
 
     for i, video in enumerate(videos):
         if i == 0:
-            matches = Article.objects.filter(
-                hash=f"youtube_{video['videoId']}", feedposition__position=1
-            )
+            matches = Article.objects.filter(hash=f"youtube_{video['videoId']}", feedposition__position=1)
             if (
                 feed.feed_type == "y-channel"
                 and feed.feed_ordering != "r"
@@ -105,27 +98,15 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
             [
                 str(i)
                 for i in ["Video"]
-                + (
-                    []
-                    if feed.source_categories is None
-                    else feed.source_categories.split(";")
-                )
+                + ([] if feed.source_categories is None else feed.source_categories.split(";"))
                 + [""]
             ]
         )
-        article_kwargs["title"] = (
-            video["title"]["runs"][0]["text"] if "title" in video else None
-        )
+        article_kwargs["title"] = video["title"]["runs"][0]["text"] if "title" in video else None
         article_kwargs["extract"] = (
-            video["descriptionSnippet"]["runs"][0]["text"]
-            if "descriptionSnippet" in video
-            else ""
+            video["descriptionSnippet"]["runs"][0]["text"] if "descriptionSnippet" in video else ""
         )
-        if (
-            "lengthText" in video
-            and "viewCountText" in video
-            and "simpleText" in video["viewCountText"]
-        ):
+        if "lengthText" in video and "viewCountText" in video and "simpleText" in video["viewCountText"]:
             article_kwargs["extract"] = (
                 video["lengthText"]["simpleText"]
                 + (" h" if len(video["lengthText"]["simpleText"]) > 5 else " min")
@@ -134,17 +115,9 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
                 + "<br>\n"
                 + article_kwargs["extract"]
             )
-        article_kwargs["image_url"] = (
-            video["thumbnail"]["thumbnails"][-1]["url"]
-            if "thumbnail" in video
-            else None
-        )
+        article_kwargs["image_url"] = video["thumbnail"]["thumbnails"][-1]["url"] if "thumbnail" in video else None
         article_kwargs["guid"] = video["videoId"]
-        publishedTimeText = (
-            video["publishedTimeText"]["simpleText"]
-            if "publishedTimeText" in video
-            else ""
-        )
+        publishedTimeText = video["publishedTimeText"]["simpleText"] if "publishedTimeText" in video else ""
         article_kwargs["pub_date"] = datetime.datetime.now()
         if "min" in publishedTimeText:
             article_kwargs["pub_date"] -= datetime.timedelta(
@@ -174,15 +147,11 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
             article_kwargs["pub_date"] -= datetime.timedelta(days=i * 7)
         else:
             print(f'Unknown date string "{publishedTimeText}"')
-        article_kwargs["pub_date"] = settings.TIME_ZONE_OBJ.localize(
-            article_kwargs["pub_date"]
-        )
+        article_kwargs["pub_date"] = settings.TIME_ZONE_OBJ.localize(article_kwargs["pub_date"])
         article_kwargs["hash"] = f"youtube_{video['videoId']}"
         article_kwargs["language"] = feed.publisher.language
         article_kwargs["link"] = f"https://www.youtube.com/watch?v={video['videoId']}"
-        article_kwargs[
-            "full_text_html"
-        ] = f"""
+        article_kwargs["full_text_html"] = f"""
         <iframe style="width: 100%; height: auto; min-height: 30vw; max-height:400px; aspect-ratio: 16 / 9;"
         referrerpolicy="no-referrer"
         src="https://www.youtube-nocookie.com/embed/{video['videoId']}?rel=0&autoplay=1"

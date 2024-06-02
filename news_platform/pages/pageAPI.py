@@ -69,15 +69,14 @@ def get_articles(max_length=72, force_recache=False, **kwargs):
                 if field.lower() == "special":
                     if condition.lower() == "free-only":
                         sub_conditions &= Q(
-                            Q(Q(has_full_text=True) | Q(publisher__paywall="N"))
-                            & Q(categories__icontains="frontpage")
+                            Q(Q(has_full_text=True) | Q(publisher__paywall="N")) & Q(categories__icontains="frontpage")
                         )
                     elif condition.lower() == "sidebar":
                         sub_conditions &= Q(categories__icontains="SIDEBAR")
                         exclude_sidebar = False
                 else:
                     condition = __convert_type(condition)
-                    if type(condition) is str:
+                    if isinstance(condition, str):
                         sub_conditions |= Q(**{f"{field}__icontains": condition})
                     else:
                         sub_conditions |= Q(**{f"{field}": condition})
@@ -105,21 +104,14 @@ def get_articles(max_length=72, force_recache=False, **kwargs):
         if exclude_sidebar:
             articles = articles.exclude(categories__icontains="SIDEBAR")
         if special_filters is not None and "sidebar" in special_filters:
-            articles = articles.order_by(
-                "-added_date", "-pub_date", "min_article_relevance"
-            ).exclude(
-                pub_date__lte=settings.TIME_ZONE_OBJ.localize(
-                    datetime.datetime.now() - datetime.timedelta(days=5)
-                )
+            articles = articles.order_by("-added_date", "-pub_date", "min_article_relevance").exclude(
+                pub_date__lte=settings.TIME_ZONE_OBJ.localize(datetime.datetime.now() - datetime.timedelta(days=5))
             )
         if has_language_filters is False and "*" not in settings.ALLOWED_LANGUAGES:
             articles = articles.filter(
                 functools.reduce(
                     operator.or_,
-                    (
-                        Q(language__icontains=x)
-                        for x in settings.ALLOWED_LANGUAGES.split(",")
-                    ),
+                    (Q(language__icontains=x) for x in settings.ALLOWED_LANGUAGES.split(",")),
                 )
             )
         if max_length is not None:
@@ -142,9 +134,7 @@ class RestArticleAPIView(APIView):
         try:
             return Response(model_to_dict(Article.objects.get(pk=pk)))
         except Exception as e:
-            return Response(
-                data=dict(error=e.__str__()), status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(data=dict(error=e.__str__()), status=status.HTTP_400_BAD_REQUEST)
 
 
 class RestPublisherAPIView(APIView):
@@ -158,9 +148,7 @@ class RestPublisherAPIView(APIView):
         try:
             return Response(model_to_dict(Publisher.objects.get(pk=pk)))
         except Exception as e:
-            return Response(
-                data=dict(error=e.__str__()), status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(data=dict(error=e.__str__()), status=status.HTTP_400_BAD_REQUEST)
 
 
 class RestLastRefeshAPIView(APIView):
@@ -187,9 +175,7 @@ def ReadLaterView(request, action, pk):
         requested_article.save()
 
         cached_views_lst = cache.get("cached_views_lst")
-        for kwargs_hash, kwargs in (
-            [].items() if cached_views_lst is None else cached_views_lst.items()
-        ):
+        for kwargs_hash, kwargs in [].items() if cached_views_lst is None else cached_views_lst.items():
             if "read_later" in kwargs_hash:
                 _, _, _ = get_articles(force_recache=True, **kwargs)
 
@@ -211,9 +197,7 @@ def ArchiveView(request, action, pk):
         requested_article.save()
 
         cached_views_lst = cache.get("cached_views_lst")
-        for kwargs_hash, kwargs in (
-            [].items() if cached_views_lst is None else cached_views_lst.items()
-        ):
+        for kwargs_hash, kwargs in [].items() if cached_views_lst is None else cached_views_lst.items():
             if "archive" in kwargs_hash or "read_later" in kwargs_hash:
                 _, _, _ = get_articles(force_recache=True, **kwargs)
 

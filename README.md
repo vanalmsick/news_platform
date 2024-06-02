@@ -1,8 +1,7 @@
 # Personal News Platform
 
 [Go to **Documentation & How-To**](https://vanalmsick.github.io/news_platform/)  
-[Go to **DockerHub Container: vanalmsick/news_platform
-**](https://hub.docker.com/repository/docker/vanalmsick/news_platform)
+[Go to **DockerHub Container: vanalmsick/news_platform**](https://hub.docker.com/repository/docker/vanalmsick/news_platform)
 
 News Aggregator - Aggregates news articles from several RSS feeds, fetches full-text if possible, sorts them by
 relevance (based on user settings), and display on distraction-free homepage.

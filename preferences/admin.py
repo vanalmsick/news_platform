@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 """Admin view for PPreferences Section/App"""
+
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 # Register your models here.
 from .models import Page
 
 
 @admin.register(Page)
-class PageAdmin(admin.ModelAdmin):
+class PageAdmin(ModelAdmin):
     """Main Admin Article View"""
 
     list_display = [
