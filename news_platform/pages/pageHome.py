@@ -18,7 +18,7 @@ from articles.models import Article
 from feed_scraper.article_scraper import update_feeds
 from feed_scraper.video_scraper import update_videos
 from markets.scrape import scrape_market_data
-from news_platform.celery import app
+from news_platform.celery import app, is_task_already_executing
 from preferences.models import Page, get_page_lst, url_parm_encode
 
 from .pageAPI import get_articles
@@ -72,7 +72,8 @@ def refresh_feeds(self):
     """Main function to refresh all articles and videos"""
     print("refreshing started")
 
-    currentlyRefreshing = cache.get("currentlyRefreshing")
+    # currentlyRefreshing = cache.get("currentlyRefreshing")
+    currentlyRefreshing = is_task_already_executing("news_platform.pages.pageHome.refresh_feeds")
     if currentlyRefreshing:
         print("Already other task that is refreshing articles")
         return "ALREADY RUNNING"
