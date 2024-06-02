@@ -27,6 +27,7 @@ relevance (based on user settings), and display on distraction-free homepage.
 - Push notifications
 - Custom news sources, article sorting, news-sections/pages, news-ticker/sidebar
 - Article previews when sharing a link e.g. via iMessage, WhatsApp, MS Teams
+- Righht-click custom context menu
 - Reading list & archive
 - Still functionable in browsers with JavaScript disabled (aka paranoid-modus)
 - All self-hosted without cookies & tracker (except required ones from Bootstrap style)
