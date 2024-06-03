@@ -13,7 +13,7 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v3
 
-      - run: pip install -y mkdocs-render-swagger-plugin
+      - run: pip install --no-input  mkdocs-render-swagger-plugin
 
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@master
