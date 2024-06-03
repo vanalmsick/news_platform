@@ -30,3 +30,4 @@ sentry-sdk[celery]
 psycopg2-binary
 drf-spectacular
 django-unfold
+mkdocs-render-swagger-plugin
