@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
 
-  # The News Plattform
+  # The News Platform
   news-platform:
     image: vanalmsick/news_platform
     container_name: news-platform

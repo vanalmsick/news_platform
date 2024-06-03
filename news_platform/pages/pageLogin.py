@@ -18,7 +18,7 @@ class LoginForm(forms.Form):
 
 
 def LoginView(request):
-    """Login view - page for user to login. Also contains artcile meta data if available"""
+    """Login view - page for user to login. Also contains article meta data if available"""
     form = LoginForm()
     message = ""
     if request.method == "POST":

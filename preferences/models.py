@@ -7,7 +7,7 @@ from django.db import models
 
 
 def url_parm_encode(**kwargs):
-    """function too translate url paramaters from GET request in dictionary to hash string"""
+    """function too translate url parameters from GET request in dictionary to hash string"""
     kwargs = {k: ",".join(v if isinstance(v, list) else [v]).split(",") for k, v in kwargs.items()}
     kwargs = {k: [v] if isinstance(v, str) else v for k, v in kwargs.items()}
     kwargs_hash = "articles_" + str({k.lower(): [i.lower() for i in sorted(v)] for k, v in kwargs.items()})

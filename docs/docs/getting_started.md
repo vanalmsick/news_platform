@@ -1,9 +1,9 @@
 ## Quick Start / TL;DR
 
-**Dafault user:** user / password  
-**Default admin:** admin / password  
+**Default user:** user / password  
+**Default admin:** admin / password
 
-*(Make sure Docker is installed: [go to docker.com](https://www.docker.com/get-started/))*
+_(Make sure Docker is installed: [go to docker.com](https://www.docker.com/get-started/))_
 
 **Minimal Docker Run Command (CMD):**
 
@@ -17,14 +17,14 @@ docker run \
 
 **All out [docker_compose.yml](https://github.com/vanalmsick/news_platform/blob/main//docker_compose.yml.template)
 setup:**  
-*docker_compose.yml:*
+_docker_compose.yml:_
 
 ```
 version: "3.9"
 
 services:
 
-  # The News Plattform
+  # The News Platform
   news-platform:
     image: vanalmsick/news_platform
     container_name: news-platform
@@ -56,8 +56,8 @@ services:
     container_name: news-platform-letsencrypt
     restart: always
     ports:
-      - 9480:80   # incomming http
-      - 9443:443  # incomming https
+      - 9480:80   # incoming http
+      - 9443:443  # incoming https
     depends_on:
       - news-platform
     volumes:
@@ -79,7 +79,7 @@ volumes:
   news_platform_letsencrypt:
 ```
 
-*start-up command (CMD):*
+_start-up command (CMD):_
 
 ```
 docker compose -f "/your/local/path/docker_compose.yml" up --pull "always" -d

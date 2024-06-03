@@ -29,6 +29,6 @@ relevance (based on user settings), and display on distraction-free homepage.
 - Article previews when sharing a link e.g. via iMessage, WhatsApp, MS Teams
 - Righht-click custom context menu
 - Reading list & archive
-- Still functionable in browsers with JavaScript disabled (aka paranoid-modus)
+- Still functioning in browsers with JavaScript disabled (aka paranoid-modus)
 - All self-hosted without cookies & tracker (except required ones from Bootstrap style)
 - Optimized to run on low-power servers like RaspberryPi 3 and later

@@ -11,7 +11,7 @@ def articleView(request, article=None):
     """Return django view of home page"""
     debug = True if "debug" in request.GET and request.GET["debug"].lower() == "true" else False
 
-    # if user is not autheticated
+    # if user is not authenticated
     if request.user.is_authenticated is False:
         return HttpResponseRedirect(f"/login/?article={article}")
 

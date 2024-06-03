@@ -22,7 +22,7 @@ class Publisher(models.Model):
     link = models.URLField()
     RENOWNED_LEVES = [
         (3, "Top Publisher"),
-        (2, "Higly Renowned Publisher"),
+        (2, "Highly Renowned Publisher"),
         (1, "Renowned Publisher"),
         (0, "Regular Publisher"),
         (-1, "Lesser-known Publisher"),

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Containing all Django models related to an indiviual artcile/video"""
+"""Containing all Django models related to an individual article/video"""
 
 import urllib
 
@@ -91,7 +91,7 @@ class Article(models.Model):
     mailto_link = models.CharField(max_length=300, null=True)
 
     def __calc_mailto_link(self):
-        """Create the caluclated field that stores the mailto link to share an artcile via email"""
+        """Create the calculated field that stores the mailto link to share an article via email"""
         SHARE_EMAIL_SUBJECT = f"{self.publisher.name}: {self.title}"
         SHARE_EMAIL_BODY = (
             "Hi,\n\nHave you seen this article:\n\n" f"{SHARE_EMAIL_SUBJECT}\n" f"{self.link}\n\n" "Best wishes,\n\n"
@@ -146,7 +146,7 @@ def truncate_long_fields(sender, instance, **kwargs):
 
 
 class FeedPosition(models.Model):
-    """Django Model Class linking a single article/video with a specific feed and containing the relavent
+    """Django Model Class linking a single article/video with a specific feed and containing the relevant
     position in that feed"""
 
     feed = models.ForeignKey(Feed, on_delete=models.CASCADE)
