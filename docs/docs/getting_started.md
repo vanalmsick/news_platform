@@ -1,5 +1,8 @@
 ## Quick Start / TL;DR
 
+**Dafault user:** user / password  
+**Default admin:** admin / password  
+
 *(Make sure Docker is installed: [go to docker.com](https://www.docker.com/get-started/))*
 
 **Minimal Docker Run Command (CMD):**

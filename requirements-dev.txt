@@ -3,7 +3,7 @@ interrogate
 pycln
 yapf
 ruff
-#pydotplus
-#mkdocs
-#mkdocs-material
+pydotplus
+mkdocs
+mkdocs-material
 mkdocs-render-swagger-plugin

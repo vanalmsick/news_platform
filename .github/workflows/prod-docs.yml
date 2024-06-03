@@ -1,8 +1,8 @@
 name: Publish Docs
 on:
   push:
-    branches: [ 'main', 'dev' ]
-    #paths: [ 'docs/**' ]
+    branches: [ 'main' ]
+    paths: [ 'docs/**' ]
 permissions:
   contents: write
 jobs:
@@ -12,8 +12,6 @@ jobs:
     steps:
       - name: Checkout main
         uses: actions/checkout@v3
-
-      - run: pip install --no-input  mkdocs-render-swagger-plugin
 
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@master
