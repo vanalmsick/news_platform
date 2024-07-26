@@ -49,7 +49,7 @@ def update_feeds():
     for feed in inactive_feeds:
         delete_feed_positions(feed=feed)
 
-    # get acctive feeds
+    # get active feeds
     feeds = Feed.objects.filter(active=True, feed_type="rss")
     if settings.TESTING:
         # when testing is turned on only fetch 10% of feeds to not having to wait too long
@@ -96,7 +96,7 @@ def update_feeds():
             )
             article.save()
 
-    # calculate next refesh time
+    # refresh next refresh time
     end_time = time.time()
 
     now = datetime.datetime.now()
@@ -150,7 +150,7 @@ def update_feeds():
 
 def calcualte_relevance(publisher, feed, feed_position, hash, pub_date, article_type):
     """
-    This function calsucates the relvanec score for all artciles and videos depensing on user
+    This function calsucates the relvanec score for all articles and videos depensing on user
     settings and article positions
     """
     random.seed(hash)
@@ -170,7 +170,7 @@ def calcualte_relevance(publisher, feed, feed_position, hash, pub_date, article_
 
     factor_publisher__renowned = {
         3: 2 / 9,  # Top Publisher = 4.5x
-        2: 4 / 6,  # Higly Renowned Publisher = 1.5x
+        2: 4 / 6,  # Highly Renowned Publisher = 1.5x
         1: 5 / 6,  # Renowned Publisher = 1.2x
         0: 6 / 6,  # Regular Publisher = 1x
         -1: 8 / 6,  # Lesser-known Publisher = 0.75x
@@ -178,7 +178,7 @@ def calcualte_relevance(publisher, feed, feed_position, hash, pub_date, article_
         -3: 12 / 6,  # Inaccurate Publisher = 0.5x
     }[publisher__renowned]
 
-    # Publisher artcile ccount normalization
+    # Publisher article ccount normalization
     # factor_article_normalization = max(min(100 / publisher_article_count, 3), 0.5)
     factor_article_normalization = 1
 
@@ -224,14 +224,14 @@ def delete_feed_positions(feed):
 @ratelimit.limits(calls=30, period=60)
 def check_limit_openai():
     """Empty function just to check for calls to API"""
-    # limit of 90k tokens per minute = 90k / 3k per request = 30 requets
+    # limit of 90k tokens per minute = 90k / 3k per requests = 30 requests
     # limit of 3500 requests per minute
     # min(3.5k, 30) = 30 requests per minute
     return
 
 
 def add_ai_summary(article_obj_lst):
-    """Use OpenAI's ChatGPT API to get artcile summaries"""
+    """Use OpenAI's ChatGPT API to get article summaries"""
     if settings.OPENAI_API_KEY is None:
         print("Not Requesting AI article summaries as OPENAI_API_KEY not set.")
     else:
@@ -349,7 +349,7 @@ def fetch_feed(feed, force_refetch):
         fetched_feed.entries = []
         print(
             f"Feed '{feed}' does not require refreshing - already up-to-date "
-            f"(lastest change at {fetched_feed__last_updated})"
+            f"(latest change at {fetched_feed__last_updated})"
         )
 
     if len(fetched_feed.entries) > 0:

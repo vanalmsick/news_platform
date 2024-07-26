@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""mange.py command add_defaullt_feeds to add default data to database"""
+"""manage.py command add_defaullt_feeds to add default data to database"""
 
 from django.core.management import BaseCommand
 

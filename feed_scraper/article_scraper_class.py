@@ -16,7 +16,7 @@ from .google_news_decode import decode_google_news_url
 # import hashlib
 
 
-# Content types (defualt: article)
+# Content types (default: article)
 LIVE_TICKER_KEYWORDS = [
     "liveticker",
     "liveblog",
@@ -40,7 +40,7 @@ BRIEFING_NEWS_KEYWORDS = [
     "weekly recap",
 ]
 
-# Importance types (defualt: normal)
+# Importance types (default: normal)
 BREAKING_NEWS_KEYWORDS = [
     "breaking news",
     "developing story",
@@ -164,7 +164,7 @@ def html_clean_up(article_html):
 
 class ScrapedArticle:
     """
-    Class to collect all artcile information from scraping.
+    Class to collect all article information from scraping.
 
     Class attribute naming scheme: field_name__source (sources: feed, meta, scrape)
     """
@@ -365,7 +365,7 @@ class ScrapedArticle:
 
     @property
     def article_hash__final(self):
-        """uniqe hash using article url"""
+        """unique hash using article url"""
         return f"{self.article_link__final.split('?')[0].lower()}"
         # return f"{hashlib.sha256(self.article_link__final.split('?')[0].lower().encode('utf-8')).hexdigest()}"
 

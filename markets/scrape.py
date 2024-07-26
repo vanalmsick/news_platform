@@ -27,8 +27,8 @@ class ABS(Func):
 def __get_bonds(tickers, headers={"User-agent": "Mozilla/5.0"}):
     """Function to scrape rates market data form tradingeconomics.com"""
     site = "https://tradingeconomics.com/bonds"
-    reponse = requests.get(site, headers=headers).text
-    soup = BeautifulSoup(reponse, "lxml")
+    response = requests.get(site, headers=headers).text
+    soup = BeautifulSoup(response, "lxml")
 
     span = soup.find("span", {"class": "market-negative-image"})
     while span is not None:
@@ -70,8 +70,8 @@ def __get_quote_table(ticker, headers={"User-agent": "Mozilla/5.0"}):
 
     site = "https://finance.yahoo.com/quote/" + ticker + "?p=" + ticker
 
-    reponse = requests.get(site, headers=headers)
-    soup = BeautifulSoup(reponse.text, "html.parser")
+    response = requests.get(site, headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
     data_points = soup.find_all("fin-streamer")
 
     data = {}

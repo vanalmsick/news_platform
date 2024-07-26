@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Get artcile data for all views"""
+"""Get article data for all views"""
 
 import datetime
 import functools
@@ -41,7 +41,7 @@ def __convert_type(n):
 
 
 def get_articles(max_length=72, force_recache=False, **kwargs):
-    """Gets artcile request by user either from database or from cache"""
+    """Gets article request by user either from database or from cache"""
     kwargs_hash, kwargs = url_parm_encode(**kwargs)
     page_num = max(int(kwargs.pop("page", ["1"])[0]), 1) - 1
 
@@ -152,7 +152,7 @@ class RestPublisherAPIView(APIView):
 
 
 class RestLastRefeshAPIView(APIView):
-    """RestAPI view to check when articles were last refeshed"""
+    """RestAPI view to check when articles were last refreshed"""
 
     authentication_classes = []  # type: ignore
     permission_classes = []  # type: ignore
@@ -183,7 +183,7 @@ def ReadLaterView(request, action, pk):
 
     except Exception:
         return HttpResponse(
-            "Error! Maybe the article was not found or other unknonw error.",
+            "Error! Maybe the article was not found or other unknown error.",
             content_type="text/plain",
         )
 
@@ -205,6 +205,6 @@ def ArchiveView(request, action, pk):
 
     except Exception:
         return HttpResponse(
-            "Error! Maybe the article was not found or other unknonw error.",
+            "Error! Maybe the article was not found or other unknown error.",
             content_type="text/plain",
         )

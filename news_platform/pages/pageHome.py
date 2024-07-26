@@ -43,7 +43,7 @@ def refresh_all_pages():
 
 
 def get_stats():
-    """Get stats about number of artciles/videos per publisher for relevance ranking"""
+    """Get stats about number of articles/videos per publisher for relevance ranking"""
     added_date__lte_2d = settings.TIME_ZONE_OBJ.localize(datetime.datetime.now() - datetime.timedelta(days=2))
     added_date__lte_30d = settings.TIME_ZONE_OBJ.localize(datetime.datetime.now() - datetime.timedelta(days=30))
 
@@ -85,7 +85,7 @@ def refresh_feeds(self):
 
         get_stats()
 
-        # Caching artciles before updaing
+        # Caching articles before updating
         refresh_all_pages()
 
         update_feeds()
@@ -95,7 +95,7 @@ def refresh_feeds(self):
             cache.set("videoRefreshCycleCount", 8, 60 * 60 * 24)
             response += "videos refreshed successfully; "
         else:
-            print(f"Refeshing videos in {videoRefreshCycleCount - 1} cycles")
+            print(f"Refreshing videos in {videoRefreshCycleCount - 1} cycles")
             cache.set("videoRefreshCycleCount", videoRefreshCycleCount - 1, 60 * 60 * 24)
             response += "video refresh not required; "
 
@@ -223,7 +223,7 @@ def RedirectView(request, article):
 
 
 def TriggerManualRefreshView(request):
-    """view to tigger manual news refresh"""
+    """view to trigger manual news refresh"""
     task = refresh_feeds.delay()
 
     HTML_RESPONSE = f"""
