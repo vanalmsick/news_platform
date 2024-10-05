@@ -339,6 +339,10 @@ class ScrapedArticle:
         if "news.google" in article_url:
             article_url = decode_google_news_url(article_url)
             self.aggregator_source = True
+        if "bing.com/news" in article_url:
+            url_kwargs = urllib.parse.parse_qs(urllib.parse.urlsplit(article_url).query)
+            article_url = url_kwargs.get("url", [article_url])[0]
+            self.aggregator_source = True
         return article_url
 
     @property
