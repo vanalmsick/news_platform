@@ -39,7 +39,7 @@ def update_videos():
 
     if (
         datetime.datetime.now().weekday() == 6
-        and datetime.datetime.now().hour > 13
+        and datetime.datetime.now().hour >= 13
         and datetime.datetime.now().hour < 15
     ):  # every sunday force re-fetch the videos to update outdated images / texts / etc
         force_refetch = True
