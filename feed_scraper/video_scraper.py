@@ -37,6 +37,13 @@ def update_videos():
         feeds = [feeds[i] for i in range(0, len(feeds), len(feeds) // (len(feeds) // 10))]
     force_refetch = os.getenv("FORCE_REFETCH", "False").lower() == "true"
 
+    if (
+        datetime.datetime.now().weekday() == 6
+        and datetime.datetime.now().hour > 13
+        and datetime.datetime.now().hour < 15
+    ):  # every sunday force re-fetch the videos to update outdated images / texts / etc
+        force_refetch = True
+
     added_videos = 0
     for feed in feeds:
         added_videos += fetch_feed(feed, force_refetch)
@@ -165,13 +172,17 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
 
         if len(search_article) == 0:
             article_obj = Article(**article_kwargs)
-            article_obj.save()
             added_vids += 1
             no_new_video = 0
 
         else:
             article_obj = search_article[0]
+            setattr(article_obj, "image_url", article_kwargs["image_url"])
+            setattr(article_obj, "full_text_html", article_kwargs["full_text_html"])
+            setattr(article_obj, "extract", article_kwargs["extract"])
+            setattr(article_obj, "title", article_kwargs["title"])
             no_new_video += 1
+        article_obj.save()
 
         (max_importance, min_article_relevance) = calcualte_relevance(
             publisher=feed.publisher,
