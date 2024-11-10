@@ -106,7 +106,7 @@ def refresh_feeds(self):
         response += "market data refreshed successfully; "
 
         now = settings.TIME_ZONE_OBJ.localize(datetime.datetime.now())
-        cache.set("lastRefreshed", now, 60 * 60 * 48)
+        cache.set("lastRefreshed", str(now.utcnow().isoformat()), 60 * 60 * 48)
 
         response += "DONE"
         cache.set("currentlyRefreshing", False, 60 * 60 * 2)
