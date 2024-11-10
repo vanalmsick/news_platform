@@ -26,7 +26,7 @@
                                 <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
                             </svg>
 
-                            <span id="lastNewsFetchNote" class="text-secondary small">(Last news fetch: <script>document.write(dateConvert("{{ lastRefreshed|date:"c" }}", "medium"));</script><noscript>{{ lastRefreshed|date:"H:i" }}</noscript>)</span>
+                            <span id="lastNewsFetchNote" class="text-secondary small">(Last news fetch: <script>document.write(dateConvert("{{ lastRefreshed }}", "medium"));</script><noscript>{{ lastRefreshed }}</noscript>)</span>
                         </a>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button"
@@ -702,8 +702,8 @@
             restRequest('/api/refresh/')
                 .then(response => response.lastRefreshed)
                 .then(function (lastRefreshed) {
-                    // console.log(((lastRefreshed === null) && ('{{ lastRefreshed }}' === 'None')), ('{{ lastRefreshed|date:"c" }}' === lastRefreshed));
-                    if (false === (((lastRefreshed === null) && ('{{ lastRefreshed }}' === 'None')) || ('{{ lastRefreshed|date:"c" }}' === lastRefreshed))) {
+                    // console.log(((lastRefreshed === null) && ('{{ lastRefreshed }}' === 'None')), ('{{ lastRefreshed }}' === lastRefreshed));
+                    if (false === (((lastRefreshed === null) && ('{{ lastRefreshed }}' === 'None')) || ('{{ lastRefreshed }}' === lastRefreshed))) {
                         console.log('new articles avaiable');
                         clearInterval(interval);
                         let element = document.getElementById("refreshNotification");
@@ -711,7 +711,7 @@
                         setInterval(refreshPageRefreshNotification, 1000 * 1);
                     } else {
                         let element = document.getElementById("lastNewsFetchNote");
-                        element.innerHTML = '(Last news fetch: ' + dateConvert("{{ lastRefreshed|date:"c" }}", "medium") + ')';
+                        element.innerHTML = '(Last news fetch: ' + dateConvert("{{ lastRefreshed }}", "medium") + ')';
                         console.log('no new articles avaiable');
                     }
                     ;
