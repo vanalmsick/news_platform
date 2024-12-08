@@ -5,7 +5,7 @@ import datetime
 import os
 import time
 import urllib
-
+import feedparser
 import scrapetube
 from django.conf import settings
 
@@ -62,6 +62,7 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
             limit=max_per_feed,
             sort_by="popular" if feed.feed_ordering == "r" else "newest",
         )
+        src = "youtube"
     elif feed.feed_type == "y-playlist":
         parsed_url = urllib.parse.parse_qs(urllib.parse.urlparse(feed.url).query)
         if "list" in parsed_url:
@@ -70,12 +71,19 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
         else:
             print(f'Error: Invalid URL "{feed.url}" for YouTube Playlist "{feed.name}"')
             videos = []
+        src = "youtube"
+    elif feed.feed_type == "rss-playlist":
+        videos = feedparser.parse(feed.url).entries
+        src = "rss"
     else:
         videos = []
+        src = "unknown"
 
     for i, video in enumerate(videos):
         if i == 0:
-            matches = Article.objects.filter(hash=f"youtube_{video['videoId']}", feedposition__position=1)
+            matches = Article.objects.filter(
+                hash=f"{src}_{video.get('videoId', video.get('id'))}", feedposition__position=1
+            )
             if (
                 feed.feed_type == "y-channel"
                 and feed.feed_ordering != "r"
@@ -109,62 +117,88 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
                 + [""]
             ]
         )
-        article_kwargs["title"] = video["title"]["runs"][0]["text"] if "title" in video else None
-        article_kwargs["extract"] = (
-            video["descriptionSnippet"]["runs"][0]["text"] if "descriptionSnippet" in video else ""
-        )
-        if "lengthText" in video and "viewCountText" in video and "simpleText" in video["viewCountText"]:
+
+        if src == "youtube":
+            article_kwargs["title"] = video["title"]["runs"][0]["text"] if "title" in video else None
             article_kwargs["extract"] = (
-                video["lengthText"]["simpleText"]
-                + (" h" if len(video["lengthText"]["simpleText"]) > 5 else " min")
-                + "  |  "
-                + video["viewCountText"]["simpleText"]
-                + "<br>\n"
-                + article_kwargs["extract"]
+                video["descriptionSnippet"]["runs"][0]["text"] if "descriptionSnippet" in video else ""
             )
-        article_kwargs["image_url"] = video["thumbnail"]["thumbnails"][-1]["url"] if "thumbnail" in video else None
-        article_kwargs["guid"] = video["videoId"]
-        publishedTimeText = video["publishedTimeText"]["simpleText"] if "publishedTimeText" in video else ""
-        article_kwargs["pub_date"] = datetime.datetime.now()
-        if "min" in publishedTimeText:
-            article_kwargs["pub_date"] -= datetime.timedelta(
-                minutes=__extract_number_from_datestr(publishedTimeText, "min")
+            if "lengthText" in video and "viewCountText" in video and "simpleText" in video["viewCountText"]:
+                article_kwargs["extract"] = (
+                    video["lengthText"]["simpleText"]
+                    + (" h" if len(video["lengthText"]["simpleText"]) > 5 else " min")
+                    + "  |  "
+                    + video["viewCountText"]["simpleText"]
+                    + "<br>\n"
+                    + article_kwargs["extract"]
+                )
+            article_kwargs["image_url"] = video["thumbnail"]["thumbnails"][-1]["url"] if "thumbnail" in video else None
+            article_kwargs["guid"] = video["videoId"]
+            publishedTimeText = video["publishedTimeText"]["simpleText"] if "publishedTimeText" in video else ""
+            article_kwargs["pub_date"] = datetime.datetime.now()
+            if "min" in publishedTimeText:
+                article_kwargs["pub_date"] -= datetime.timedelta(
+                    minutes=__extract_number_from_datestr(publishedTimeText, "min")
+                )
+            elif "hour" in publishedTimeText:
+                article_kwargs["pub_date"] -= datetime.timedelta(
+                    hours=__extract_number_from_datestr(publishedTimeText, "hour")
+                )
+            elif "day" in publishedTimeText:
+                article_kwargs["pub_date"] -= datetime.timedelta(
+                    days=__extract_number_from_datestr(publishedTimeText, "day")
+                )
+            elif "week" in publishedTimeText:
+                article_kwargs["pub_date"] -= datetime.timedelta(
+                    days=__extract_number_from_datestr(publishedTimeText, "week") * 7
+                )
+            elif "month" in publishedTimeText:
+                article_kwargs["pub_date"] -= datetime.timedelta(
+                    days=__extract_number_from_datestr(publishedTimeText, "month") * 30
+                )
+            elif "year" in publishedTimeText:
+                article_kwargs["pub_date"] -= datetime.timedelta(
+                    days=__extract_number_from_datestr(publishedTimeText, "year") * 365
+                )
+            elif publishedTimeText == "":
+                article_kwargs["pub_date"] -= datetime.timedelta(days=i * 7)
+            else:
+                print(f'Unknown date string "{publishedTimeText}"')
+            article_kwargs["pub_date"] = settings.TIME_ZONE_OBJ.localize(article_kwargs["pub_date"])
+            article_kwargs["hash"] = f"{src}_{video['videoId']}"
+            article_kwargs["language"] = feed.publisher.language
+            article_kwargs["link"] = f"https://www.youtube.com/watch?v={video['videoId']}"
+            article_kwargs["full_text_html"] = f"""
+            <iframe style="width: 100%; height: auto; min-height: 30vw; max-height:400px; aspect-ratio: 16 / 9;"
+            referrerpolicy="no-referrer"
+            src="https://www.youtube-nocookie.com/embed/{video['videoId']}?rel=0&autoplay=1"
+            frameborder="0" allow="autoplay; encrypted-media" tabindex="0" allowfullscreen></iframe><br>\n
+            <div>{article_kwargs["extract"]}</div>
+            """
+
+        elif src == "rss":
+            article_kwargs["title"] = video.get("title")
+            article_kwargs["extract"] = f"""
+            {int(video.get('duration')) // 60} min  |  {video.get('author')}<br>
+            {video.get('summary')}
+            """
+
+            article_kwargs["pub_date"] = settings.TIME_ZONE_OBJ.localize(
+                datetime.datetime.fromtimestamp(time.mktime(video.get("published_parsed")))
             )
-        elif "hour" in publishedTimeText:
-            article_kwargs["pub_date"] -= datetime.timedelta(
-                hours=__extract_number_from_datestr(publishedTimeText, "hour")
-            )
-        elif "day" in publishedTimeText:
-            article_kwargs["pub_date"] -= datetime.timedelta(
-                days=__extract_number_from_datestr(publishedTimeText, "day")
-            )
-        elif "week" in publishedTimeText:
-            article_kwargs["pub_date"] -= datetime.timedelta(
-                days=__extract_number_from_datestr(publishedTimeText, "week") * 7
-            )
-        elif "month" in publishedTimeText:
-            article_kwargs["pub_date"] -= datetime.timedelta(
-                days=__extract_number_from_datestr(publishedTimeText, "month") * 30
-            )
-        elif "year" in publishedTimeText:
-            article_kwargs["pub_date"] -= datetime.timedelta(
-                days=__extract_number_from_datestr(publishedTimeText, "year") * 365
-            )
-        elif publishedTimeText == "":
-            article_kwargs["pub_date"] -= datetime.timedelta(days=i * 7)
-        else:
-            print(f'Unknown date string "{publishedTimeText}"')
-        article_kwargs["pub_date"] = settings.TIME_ZONE_OBJ.localize(article_kwargs["pub_date"])
-        article_kwargs["hash"] = f"youtube_{video['videoId']}"
-        article_kwargs["language"] = feed.publisher.language
-        article_kwargs["link"] = f"https://www.youtube.com/watch?v={video['videoId']}"
-        article_kwargs["full_text_html"] = f"""
-        <iframe style="width: 100%; height: auto; min-height: 30vw; max-height:400px; aspect-ratio: 16 / 9;"
-        referrerpolicy="no-referrer"
-        src="https://www.youtube-nocookie.com/embed/{video['videoId']}?rel=0&autoplay=1"
-        frameborder="0" allow="autoplay; encrypted-media" tabindex="0" allowfullscreen></iframe><br>\n
-        <div>{article_kwargs["extract"]}</div>
-        """
+            article_kwargs["guid"] = video.get("id")
+            article_kwargs["hash"] = f"{src}_{video.get('id')}"
+            article_kwargs["language"] = feed.publisher.language
+            article_kwargs["link"] = video.get("websiteurl")
+            article_kwargs["full_text_html"] = f"""
+            <video style="width: 100%; height: auto; min-height: 30vw; max-height:400px; aspect-ratio: 16 / 9;"
+            referrerpolicy="no-referrer" controls>
+                <source src="{video.get('link')}" type="video/mp4">
+                Your browser does not support HTML video.
+            </video><br>\n
+            <div>{article_kwargs["extract"]}</div>
+            """
+
         article_kwargs["has_full_text"] = True
         article_kwargs["has_extract"] = False
 
