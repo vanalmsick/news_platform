@@ -70,8 +70,9 @@ class Feed(models.Model):
         ("rss", "RSS Feed"),
         ("y-channel", "YouTube Channel"),
         ("y-playlist", "YouTube Playlist"),
+        ("rss-playlist", "RSS Video Playlist (MediathekViewWeb.de)"),
     ]
-    feed_type = models.CharField(max_length=10, choices=FEED_TYPES, default="rss")
+    feed_type = models.CharField(max_length=15, choices=FEED_TYPES, default="rss")
     source_categories = models.CharField(max_length=250, null=True, blank=True)
     FEED_ORDER = [("r", "Relavance"), ("d", "Date")]
     feed_ordering = models.CharField(max_length=1, choices=FEED_ORDER)
