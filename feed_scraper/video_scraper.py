@@ -225,10 +225,10 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
 
         else:
             article_obj = search_article[0]
-            setattr(article_obj, "image_url", article_kwargs["image_url"])
-            setattr(article_obj, "full_text_html", article_kwargs["full_text_html"])
-            setattr(article_obj, "extract", article_kwargs["extract"])
-            setattr(article_obj, "title", article_kwargs["title"])
+            setattr(article_obj, "image_url", article_kwargs.get("image_url"))
+            setattr(article_obj, "full_text_html", article_kwargs.get("full_text_html"))
+            setattr(article_obj, "extract", article_kwargs.get("extract"))
+            setattr(article_obj, "title", article_kwargs.get("title"))
             no_new_video += 1
         article_obj.save()
 
