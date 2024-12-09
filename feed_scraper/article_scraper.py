@@ -166,7 +166,7 @@ def calcualte_relevance(publisher, feed, feed_position, hash, pub_date, article_
     if pub_date is None:
         article_age = 3
     else:
-        article_age = (settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()) - pub_date).total_seconds() / 3600
+        article_age = abs((settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()) - pub_date).total_seconds() / 3600)
 
     factor_publisher__renowned = {
         3: 2 / 9,  # Top Publisher = 4.5x

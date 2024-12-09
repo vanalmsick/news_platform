@@ -5,6 +5,7 @@ import datetime
 import os
 import time
 import urllib
+import requests
 import feedparser
 import scrapetube
 from django.conf import settings
@@ -198,6 +199,19 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
             </video><br>\n
             <div>{article_kwargs["extract"]}</div>
             """
+
+            if settings.FULL_TEXT_URL is not None:
+                # fetch full-text data
+                try:
+                    full_text_request_url = (
+                        f"{settings.FULL_TEXT_URL}extract.php?url={urllib.parse.quote(article_kwargs['link'], safe='')}"
+                    )
+                    full_text_response = requests.get(full_text_request_url, timeout=5)
+                    if full_text_response.status_code == 200:
+                        full_text_json = full_text_response.json()
+                        article_kwargs["image_url"] = full_text_json.get("og_image")
+                except Exception as e:
+                    print(f'Error fetching full-text image for video "{article_kwargs["title"]}": {e}')
 
         article_kwargs["has_full_text"] = True
         article_kwargs["has_extract"] = False
