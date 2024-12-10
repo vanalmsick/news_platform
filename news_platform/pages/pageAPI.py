@@ -3,6 +3,8 @@
 
 import datetime
 import functools
+import urllib
+import requests
 import operator
 
 from django.conf import settings
@@ -17,6 +19,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from news_platform.celery import app
 from articles.models import Article
 from feeds.models import Publisher
 from preferences.models import url_parm_encode
@@ -208,3 +211,46 @@ def ArchiveView(request, action, pk):
             "Error! Maybe the article was not found or other unknown error.",
             content_type="text/plain",
         )
+
+
+@app.task(bind=True, time_limit=60 * 3, max_retries=0)  # 3 min time limit
+def refetch_image_article(self, pk):
+    """Main function to refetching article image if loading error detected by JS"""
+    print("Article image refetching started")
+
+    if settings.FULL_TEXT_URL is not None:
+        # fetch full-text data
+        try:
+            requested_article = Article.objects.get(pk=int(pk))
+            full_text_request_url = (
+                f"{settings.FULL_TEXT_URL}extract.php?url={urllib.parse.quote(requested_article.link, safe='')}"
+            )
+            full_text_response = requests.get(full_text_request_url, timeout=5)
+            if full_text_response.status_code == 200:
+                full_text_json = full_text_response.json()
+                setattr(requested_article, "image_url", full_text_json.get("image", full_text_json.get("og_image")))
+                requested_article.save()
+
+                lastImageRefetched = cache.get("lastImageRefetched", [])
+                cache.set("lastImageRefetched", [i for i in lastImageRefetched if i != pk], 60 * 60 * 2 + 300)
+
+        except Exception as e:
+            print(f'Error fetching image for article "{pk}": {e}')
+
+    print("Article image refetching finished")
+
+
+def ImageErrorView(request, article):
+    """view to trigger article image refetching if JS detects loading error"""
+    lastImageRefetched = cache.get("lastImageRefetched", [])
+    article = int(article)
+
+    if article in lastImageRefetched:
+        print(f"Image issue was already received for article {article}. No new task")
+
+    else:
+        task = refetch_image_article.delay(article)
+        cache.set("lastImageRefetched", lastImageRefetched + [article], 60 * 60 * 2 + 300)
+        print(f"Image issue received for article {article}. Task Id: {task.task_id}")
+
+    return HttpResponse("RECEIVED")

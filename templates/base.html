@@ -360,6 +360,12 @@
         }
 
 
+        function imgError(image) {
+            const response = fetch('/img-error/' + image + '/');
+            console.log('Reported not working image of article', image, response);
+        }
+
+
     </script>
 
     <style>
