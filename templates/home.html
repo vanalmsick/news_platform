@@ -411,7 +411,7 @@
                                             {% if article.image_url != Null %}
                                                 <img class="card-img-top" alt="Thumbnail" style="width: 100%;"
                                                      referrerpolicy="no-referrer"
-                                                     src="{{ article.image_url }}" loading="lazy">
+                                                     src="{{ article.image_url }}" loading="lazy" onerror="imgError({{ article.pk }});">
                                             {% endif %}
                                             <div class="card-body d-flex flex-column align-items-start text-break">
                                                 <strong class="d-inline-block mb-2 text-primary"

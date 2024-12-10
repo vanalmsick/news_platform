@@ -26,6 +26,7 @@ from news_platform.pages.pageAPI import (
     RestArticleAPIView,
     RestLastRefeshAPIView,
     RestPublisherAPIView,
+    ImageErrorView,
 )
 from news_platform.pages.pageArticle import articleView
 from news_platform.pages.pageHome import (
@@ -57,6 +58,7 @@ urlpatterns = [
     path("refresh/", TriggerManualRefreshView, name="refresh_news"),
     path("view/<int:article>/", articleView, name="view_article"),
     path("redirect/<int:article>/", RedirectView, name="redirect_article"),
+    path("img-error/<int:article>/", ImageErrorView, name="image_error"),
     path("", homeView, name="home"),
     path("auth/", include("djoser.urls")),
     path("auth/", include("djoser.urls.jwt")),
