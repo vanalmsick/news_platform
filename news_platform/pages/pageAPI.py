@@ -216,7 +216,7 @@ def ArchiveView(request, action, pk):
 @app.task(bind=True, time_limit=60 * 3, max_retries=0)  # 3 min time limit
 def refetch_image_article(self, pk):
     """Main function to refetching article image if loading error detected by JS"""
-    print("Article image refetching started")
+    print(f"Article {pk} image refetching started")
 
     if settings.FULL_TEXT_URL is not None:
         # fetch full-text data
@@ -237,7 +237,8 @@ def refetch_image_article(self, pk):
         except Exception as e:
             print(f'Error fetching image for article "{pk}": {e}')
 
-    print("Article image refetching finished")
+    print(f"Article {pk} image refetching finished")
+    return f'Image for article "{requested_article}" refetched'
 
 
 def ImageErrorView(request, article):
