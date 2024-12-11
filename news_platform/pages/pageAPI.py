@@ -231,9 +231,6 @@ def refetch_image_article(self, pk):
                 setattr(requested_article, "image_url", full_text_json.get("image", full_text_json.get("og_image")))
                 requested_article.save()
 
-                lastImageRefetched = cache.get("lastImageRefetched", [])
-                cache.set("lastImageRefetched", [i for i in lastImageRefetched if i != pk], 60 * 60 * 2 + 300)
-
         except Exception as e:
             print(f'Error fetching image for article "{pk}": {e}')
 
@@ -243,15 +240,15 @@ def refetch_image_article(self, pk):
 
 def ImageErrorView(request, article):
     """view to trigger article image refetching if JS detects loading error"""
-    lastImageRefetched = cache.get("lastImageRefetched", [])
     article = int(article)
+    lastImageRefetched = cache.get(f"lastImageRefetched-{article}", False)
 
-    if article in lastImageRefetched:
+    if lastImageRefetched:
         print(f"Image issue was already received for article {article}. No new task")
 
     else:
         task = refetch_image_article.delay(article)
-        cache.set("lastImageRefetched", lastImageRefetched + [article], 60 * 60 * 2 + 300)
+        cache.set(f"lastImageRefetched-{article}", True, 60 * 60 * 2)
         print(f"Image issue received for article {article}. Task Id: {task.task_id}")
 
     return HttpResponse("RECEIVED")

@@ -360,9 +360,14 @@
         }
 
 
-        function imgError(image) {
-            const response = fetch('/img-error/' + image + '/');
-            console.log('Reported not working image of article', image, response);
+        function imgError(image, url) {
+            fetch(url)
+                .then(response => {
+                    if (!response.ok && (response.status == 400 || response.status == 404)) {
+                        const response = fetch('/img-error/' + image + '/');
+                        console.log('Reported not working article image to server', image, response);
+                    }
+                }).catch(error => console.error('Image fetch failed:', error));
         }
 
 
