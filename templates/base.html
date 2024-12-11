@@ -362,7 +362,9 @@
 
         function imgError(image, url) {
             fetch(url)
-                .then(response => {})
+                .then(response => {
+                    console.log('Response', response);
+                })
                 .catch(error => {
                     if (error.status === 404) {
                         console.log('Report: Image not found (404) error to server');
