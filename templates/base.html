@@ -362,16 +362,16 @@
 
         function imgError(image, url) {
             fetch(url)
-                .then(response => {
-                    if (response.status === 404) {
-                      console.log('Report: Image not found (404) error to server');
-                      const response = fetch('/img-error/' + image + '/');
-                      console.log('Reported not working article image to server', image, response);
-                    } else if (!response.ok) {
-                      console.log(`Image fetch error: HTTP status ${response.status}`);
+                .then(response => {})
+                .catch(error => {
+                    if (error.status === 404) {
+                        console.log('Report: Image not found (404) error to server');
+                        const response = fetch('/img-error/' + image + '/');
+                        console.log('Reported not working article image to server', image, response);
+                    } else {
+                        console.error('Other image fetch error:', error, error.status);
                     }
-                  })
-                  .catch(error => console.error('Image fetch failed:', error));
+                });
         }
 
 
