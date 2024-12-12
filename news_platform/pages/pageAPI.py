@@ -218,40 +218,42 @@ def refetch_image_article(self, pk):
     """Main function to refetching article image if loading error detected by JS"""
     print(f"Article {pk} image refetching started")
 
+    result = f"Image for article {pk} was not refetched"
+
     if settings.FULL_TEXT_URL is not None:
         # fetch full-text data
         try:
             requested_article = Article.objects.get(pk=int(pk))
-            full_text_request_url = (
-                f"{settings.FULL_TEXT_URL}extract.php?url={urllib.parse.quote(requested_article.link, safe='')}"
-            )
-            full_text_response = requests.get(full_text_request_url, timeout=5)
-            if full_text_response.status_code == 200:
-                full_text_json = full_text_response.json()
-                setattr(requested_article, "image_url", full_text_json.get("image", full_text_json.get("og_image")))
-                requested_article.save()
-
-                lastImageRefetched = cache.get("lastImageRefetched", [])
-                cache.set("lastImageRefetched", [i for i in lastImageRefetched if i != pk], 60 * 60 * 2 + 300)
+            test_img = requests.get(requested_article.link)
+            if test_img.ok is False and test_img.status_code in [400, 404]:
+                full_text_request_url = (
+                    f"{settings.FULL_TEXT_URL}extract.php?url={urllib.parse.quote(requested_article.link, safe='')}"
+                )
+                full_text_response = requests.get(full_text_request_url, timeout=5)
+                if full_text_response.status_code == 200:
+                    full_text_json = full_text_response.json()
+                    setattr(requested_article, "image_url", full_text_json.get("image", full_text_json.get("og_image")))
+                    requested_article.save()
+                    result = f"Image for article {pk} was refetched"
 
         except Exception as e:
             print(f'Error fetching image for article "{pk}": {e}')
 
     print(f"Article {pk} image refetching finished")
-    return f'Image for article "{requested_article}" refetched'
+    return result
 
 
 def ImageErrorView(request, article):
     """view to trigger article image refetching if JS detects loading error"""
-    lastImageRefetched = cache.get("lastImageRefetched", [])
     article = int(article)
+    lastImageRefetched = cache.get(f"lastImageRefetched-{article}", False)
 
-    if article in lastImageRefetched:
+    if lastImageRefetched:
         print(f"Image issue was already received for article {article}. No new task")
 
     else:
         task = refetch_image_article.delay(article)
-        cache.set("lastImageRefetched", lastImageRefetched + [article], 60 * 60 * 2 + 300)
+        cache.set(f"lastImageRefetched-{article}", True, 60 * 60 * 2)
         print(f"Image issue received for article {article}. Task Id: {task.task_id}")
 
     return HttpResponse("RECEIVED")
