@@ -360,20 +360,24 @@
         }
 
 
-        function imgError(image, url) {
-            fetch(url)
-                .then(response => {
-                    console.log('Response', response);
-                })
-                .catch(error => {
-                    if (error.status === 404) {
-                        console.log('Report: Image not found (404) error to server');
-                        const response = fetch('/img-error/' + image + '/');
-                        console.log('Reported not working article image to server', image, response);
-                    } else {
-                        console.error('Other image fetch error:', error, error.status);
-                    }
-                });
+        function imgError(image) {
+            const list = JSON.parse(localStorage.getItem('reportedImages')) ? JSON.parse(localStorage.getItem('reportedImages')) : [];
+
+            if (list.includes(image)) {
+                console.log('Not working image for article ' + image + ' was already reported');
+            } else {
+                fetch('/img-error/' + image + '/')
+                    .then(response => {
+                        console.log('Successfully reported not working image for article ' + image + ' -', response);
+                        list.push(image);
+                        localStorage.setItem('reportedImages', JSON.stringify(list));
+                    })
+                    .catch(error => {
+                        console.log('Error reporting not working image for article ' + image + ' -', error);
+                    })
+
+            }
+
         }
 
 

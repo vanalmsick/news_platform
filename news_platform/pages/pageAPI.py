@@ -222,14 +222,16 @@ def refetch_image_article(self, pk):
         # fetch full-text data
         try:
             requested_article = Article.objects.get(pk=int(pk))
-            full_text_request_url = (
-                f"{settings.FULL_TEXT_URL}extract.php?url={urllib.parse.quote(requested_article.link, safe='')}"
-            )
-            full_text_response = requests.get(full_text_request_url, timeout=5)
-            if full_text_response.status_code == 200:
-                full_text_json = full_text_response.json()
-                setattr(requested_article, "image_url", full_text_json.get("image", full_text_json.get("og_image")))
-                requested_article.save()
+            test_img = requests.get(requested_article.link)
+            if test_img.ok is False and test_img.status_code in [400, 404]:
+                full_text_request_url = (
+                    f"{settings.FULL_TEXT_URL}extract.php?url={urllib.parse.quote(requested_article.link, safe='')}"
+                )
+                full_text_response = requests.get(full_text_request_url, timeout=5)
+                if full_text_response.status_code == 200:
+                    full_text_json = full_text_response.json()
+                    setattr(requested_article, "image_url", full_text_json.get("image", full_text_json.get("og_image")))
+                    requested_article.save()
 
         except Exception as e:
             print(f'Error fetching image for article "{pk}": {e}')
