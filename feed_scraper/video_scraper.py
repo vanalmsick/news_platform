@@ -39,10 +39,10 @@ def update_videos():
     force_refetch = os.getenv("FORCE_REFETCH", "False").lower() == "true"
 
     if (
-        datetime.datetime.now().weekday() == 6
+        datetime.datetime.now().weekday() in [0, 6]
         and datetime.datetime.now().hour >= 13
         and datetime.datetime.now().hour < 15
-    ):  # every sunday force re-fetch the videos to update outdated images / texts / etc
+    ):  # every Monday and Friday force re-fetch the videos to update outdated images / texts / etc
         force_refetch = True
 
     added_videos = 0

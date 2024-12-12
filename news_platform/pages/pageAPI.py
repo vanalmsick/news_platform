@@ -218,6 +218,8 @@ def refetch_image_article(self, pk):
     """Main function to refetching article image if loading error detected by JS"""
     print(f"Article {pk} image refetching started")
 
+    result = f"Image for article {pk} was not refetched"
+
     if settings.FULL_TEXT_URL is not None:
         # fetch full-text data
         try:
@@ -232,12 +234,13 @@ def refetch_image_article(self, pk):
                     full_text_json = full_text_response.json()
                     setattr(requested_article, "image_url", full_text_json.get("image", full_text_json.get("og_image")))
                     requested_article.save()
+                    result = f"Image for article {pk} was refetched"
 
         except Exception as e:
             print(f'Error fetching image for article "{pk}": {e}')
 
     print(f"Article {pk} image refetching finished")
-    return f'Image for article "{requested_article}" refetched'
+    return result
 
 
 def ImageErrorView(request, article):
