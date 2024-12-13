@@ -218,14 +218,16 @@ def refetch_image_article(self, pk):
     """Main function to refetching article image if loading error detected by JS"""
     print(f"Article {pk} image refetching started")
 
-    result = f"Image for article {pk} was not refetched"
-
-    if settings.FULL_TEXT_URL is not None:
+    if settings.FULL_TEXT_URL is None:
+        result = "No FULL_TEXT_URL defined for image refetch"
+    else:
         # fetch full-text data
         try:
+            result = "Error checking current image"
             requested_article = Article.objects.get(pk=int(pk))
             test_img = requests.get(requested_article.link)
             if test_img.ok is False and test_img.status_code in [400, 404]:
+                result = f"Image does not work ({test_img.status_code}) - error fetching new image"
                 full_text_request_url = (
                     f"{settings.FULL_TEXT_URL}extract.php?url={urllib.parse.quote(requested_article.link, safe='')}"
                 )
@@ -234,10 +236,13 @@ def refetch_image_article(self, pk):
                     full_text_json = full_text_response.json()
                     setattr(requested_article, "image_url", full_text_json.get("image", full_text_json.get("og_image")))
                     requested_article.save()
-                    result = f"Image for article {pk} was refetched"
+                    result = f"Image does not work ({test_img.status_code}) - success fetching new image"
+            else:
+                result = f"Image works ({test_img.status_code}) - refetching not required"
 
         except Exception as e:
             print(f'Error fetching image for article "{pk}": {e}')
+            result += ": " + str(e)
 
     print(f"Article {pk} image refetching finished")
     return result
