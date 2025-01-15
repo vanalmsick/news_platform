@@ -6,7 +6,7 @@ import traceback
 from io import StringIO
 
 import pandas as pd
-import requests  # type: ignore
+from curl_cffi import requests  # type: ignore
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
@@ -68,33 +68,22 @@ def __get_bonds(tickers, headers={"User-agent": "Mozilla/5.0"}):
 def __get_quote_table(ticker, headers={"User-agent": "Mozilla/5.0"}):
     """Scrape Market Data from Yahoo Finance"""
 
-    site = "https://finance.yahoo.com/quote/" + ticker + "?p=" + ticker
+    url = "https://query1.finance.yahoo.com/v7/finance/spark"
 
-    response = requests.get(site, headers=headers)
-    soup = BeautifulSoup(response.text, "html.parser")
-    data_points = soup.find_all("fin-streamer")
+    querystring = {
+        "includePrePost": "false",
+        "includeTimestamps": "false",
+        "indicators": "close",
+        "interval": "1d",
+        "range": "1d",
+        "symbols": ticker,
+        "lang": "en-US",
+        "region": "US",
+    }
 
-    data = {}
-    for i in data_points:
-        if (
-            "data-field" in i.attrs
-            and "data-value" in i.attrs
-            and "data-symbol" in i.attrs
-            and ticker.upper() in i.attrs["data-symbol"].upper()
-        ):
-            data[i.attrs["data-field"]] = i.attrs["data-value"]
-
-    converted_data = {}
-    for k, v in data.items():
-        if isinstance(v, str):
-            if v != "":
-                d = v.split(" - ")
-                for i, j in enumerate(d):
-                    if j.replace(",", "").replace("-", "", 1).replace(".", "", 1).isdigit():
-                        d[i] = float(j.replace(",", ""))
-                converted_data[k] = d[0] if len(d) == 1 else d
-        else:
-            converted_data[k] = v
+    request = requests.get(url, params=querystring, impersonate="chrome")
+    request_json = request.json()
+    converted_data = request_json.get("spark", {}).get("result", [{}])[0].get("response", [{}])[0].get("meta", {})
 
     return converted_data
 
@@ -119,7 +108,7 @@ def scrape_market_data():
             obj = DataEntry(
                 source=data_src,
                 price=summary_box["regularMarketPrice"],
-                change_today=summary_box["regularMarketChangePercent"],
+                change_today=(summary_box["regularMarketPrice"] / summary_box["chartPreviousClose"] - 1) * 100,
                 market_closed=False,
             )
             obj.save()
