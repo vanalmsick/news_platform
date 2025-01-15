@@ -32,3 +32,4 @@ drf-spectacular
 django-unfold
 mkdocs-render-swagger-plugin
 googlenewsdecoder
+curl_cffi
