@@ -476,6 +476,8 @@ class ScrapedArticle:
             prio_order = prio_order[1:] + prio_order[:1]
         for attr in prio_order:
             if (title := getattr(self, attr, None)) is not None:
+                if attr == "article_title__feed" and self.aggregator_source and " - " in title:
+                    title = "".join(title.split(" - ")[:-1])
                 return title
 
     @property
