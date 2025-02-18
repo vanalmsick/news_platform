@@ -33,3 +33,4 @@ django-unfold
 mkdocs-render-swagger-plugin
 googlenewsdecoder
 curl_cffi
+gpt4all
