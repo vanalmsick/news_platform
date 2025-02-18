@@ -18,6 +18,8 @@ RUN curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyri
 # Install pip python packages
 COPY requirements.txt /news_platform/requirements.txt
 RUN pip3 install --no-cache-dir -r /news_platform/requirements.txt
+RUN apt-get install -y liblzma-dev
+RUN cd /tmp && git clone --recurse-submodules https://github.com/nomic-ai/gpt4all &&  cd gpt4all/gpt4all-backend/ && mkdir build && cd build && cmake .. &&   cmake --build . --parallel  && cd ../../gpt4all-bindings/python && pip3 install -e .
 
 # Add non-root user "app_user"
 RUN useradd -U app_user \
