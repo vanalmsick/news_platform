@@ -18,6 +18,7 @@ RUN curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyri
 # Install pip python packages
 COPY requirements.txt /news_platform/requirements.txt
 RUN pip3 install --no-cache-dir -r /news_platform/requirements.txt
+RUN apt-get install -y liblzma-dev
 
 # Add non-root user "app_user"
 RUN useradd -U app_user \

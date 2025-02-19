@@ -9,6 +9,7 @@ import urllib
 import langid
 from bs4 import BeautifulSoup
 from django.conf import settings
+import requests
 
 from .google_news_decode import decode_google_news_url
 
@@ -476,6 +477,8 @@ class ScrapedArticle:
             prio_order = prio_order[1:] + prio_order[:1]
         for attr in prio_order:
             if (title := getattr(self, attr, None)) is not None:
+                if attr == "article_title__feed" and self.aggregator_source and " - " in title:
+                    title = "".join(title.split(" - ")[:-1])
                 return title
 
     @property
@@ -667,22 +670,38 @@ class ScrapedArticle:
         return new_tags[1:-1]
 
     def get_final_attrs(self):
+        title = self.article_title__final
+        extract = self.article_summary__final
+        categories = self.article_tags__final
+
+        if settings.OLLAMA_URL is not None:
+            data = {
+                "model": settings.OLLAMA_MODEL,
+                "prompt": f'5 keywords from this headline as list: "{title}. {extract}"',
+                "stream": False,
+            }
+
+            response = requests.post(settings.OLLAMA_URL + "/api/generate", json=data)
+            ai_list = response.json().get("response")
+            ai_categories = ai_list.split("\n- ")[1:]
+            categories = ";".join(categories.split(";") + ai_categories)
+
         return {
             "publisher": self.article_publisher__final,
-            "title": self.article_title__final,
+            "title": title,
             "author": self.article_author__final,
             "link": self.article_link__final,
             "image_url": self.article_thumbnail__final,
             "importance_type": self.article_importance_type__final,
             "content_type": self.article_content_type__final,
-            "extract": self.article_summary__final,
+            "extract": extract,
             "has_extract": self.article_has_summary__final,
             "full_text_html": self.article_content_html__final,
             "full_text_text": self.article_content_text__final,
             "has_full_text": self.article_has_content__final,
             "pub_date": self.article_published_filled__final,
             "last_updated_date": self.article_last_updated_filled__final,
-            "categories": self.article_tags__final,
+            "categories": categories,
             "language": self.article_language__final,
             "guid": self.article_id__final,
             "hash": self.article_hash__final,
