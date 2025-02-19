@@ -684,7 +684,6 @@ class ScrapedArticle:
             response = requests.post(settings.OLLAMA_URL + "/api/generate", json=data)
             ai_list = response.json().get("response")
             ai_categories = ai_list.split("\n- ")[1:]
-            print("Got AI categoriess from Ollama:", ai_categories)
             categories = ";".join(categories.split(";") + ai_categories)
 
         return {
