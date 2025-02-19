@@ -9,7 +9,7 @@ import urllib
 import langid
 from bs4 import BeautifulSoup
 from django.conf import settings
-from gpt4all import GPT4All
+import requests
 
 from .google_news_decode import decode_google_news_url
 
@@ -674,14 +674,18 @@ class ScrapedArticle:
         extract = self.article_summary__final
         categories = self.article_tags__final
 
-        model = GPT4All("orca-mini-3b-gguf2-q4_0.gguf")
-        with model.chat_session():
-            ai_categories = model.generate(
-                f'''Give me a few keywords summarising what this article is about:\nArticle title: "{title}"\nArticle summary: "{extract}"''',
-                max_tokens=1024,
-            )
-        ai_categories = ai_categories.replace("Keywords: ", "").split(", ")
-        categories = ";".join(categories.split(";") + ai_categories)
+        if settings.OLLAMA_URL is not None:
+            data = {
+                "model": settings.OLLAMA_MODEL,
+                "prompt": f'5 keywords from this headline as list: "{title}. {extract}"',
+                "stream": False,
+            }
+
+            response = requests.post(settings.OLLAMA_URL + "/api/generate", json=data)
+            ai_list = response.json().get("response")
+            ai_categories = ai_list.split("\n- ")[1:]
+            print("Got AI categoriess from Ollama:", ai_categories)
+            categories = ";".join(categories.split(";") + ai_categories)
 
         return {
             "publisher": self.article_publisher__final,
