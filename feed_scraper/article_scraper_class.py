@@ -677,13 +677,13 @@ class ScrapedArticle:
         if settings.OLLAMA_URL is not None:
             data = {
                 "model": settings.OLLAMA_MODEL,
-                "prompt": f'5 keywords from this headline as list: "{title}. {extract}"',
+                "prompt": f'List 5 keywords from this text: "{title}. {extract}"',
                 "stream": False,
             }
 
             response = requests.post(settings.OLLAMA_URL + "/api/generate", json=data)
             ai_list = response.json().get("response")
-            ai_categories = ai_list.split("\n- ")[1:]
+            ai_categories = [i[3:] for i in ai_list.split("\n")]
             categories = ";".join(categories.split(";") + ai_categories)
 
         return {
