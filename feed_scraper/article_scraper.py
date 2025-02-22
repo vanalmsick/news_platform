@@ -47,8 +47,9 @@ def postpone(function):
 
 
 def find_grouped_articles():
+    """Finds articles about the same topic and adds ArticleGroup objects"""
     print("Finding article groups...")
-    pages_kwargs = Page.objects.all().values_list("url_parameters_json", flat=True)
+    pages_kwargs = Page.objects.all().order_by("-position_index").values_list("url_parameters_json", flat=True)
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
     for page_kwargs in pages_kwargs:
