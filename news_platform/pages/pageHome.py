@@ -124,7 +124,6 @@ def refresh_feeds(self):
 
 def homeView(request, article=None):
     """Return django view of home page"""
-    # refresh_feeds()
     # update_feeds()
     # refresh_all_pages()
 
@@ -132,7 +131,7 @@ def homeView(request, article=None):
     kwargs_hash, articles, page_num = (
         get_articles(categories="frontpage") if len(request.GET) == 0 else get_articles(**request.GET)
     )
-    _, sidebar, _ = get_articles(special="sidebar", max_length=100)
+    _, sidebar, _ = get_articles(special="sidebar", max_length=100, grouped_articles=False)
 
     # Get page infos
     _, url_kwargs = url_parm_encode(**request.GET)

@@ -43,7 +43,7 @@ def __convert_type(n):
                 return n
 
 
-def get_articles(max_length=72, force_recache=False, **kwargs):
+def get_articles(max_length=72, force_recache=False, grouped_articles=True, **kwargs):
     """Gets article request by user either from database or from cache"""
     kwargs_hash, kwargs = url_parm_encode(**kwargs)
     page_num = max(int(kwargs.pop("page", ["1"])[0]), 1) - 1
@@ -94,6 +94,11 @@ def get_articles(max_length=72, force_recache=False, **kwargs):
                 test_condition = []
             if len(test_condition) > 0:
                 conditions &= sub_conditions
+        if grouped_articles:
+            conditions &= Q(article_group__isnull=True)
+        else:
+            conditions &= Q(articlegroup__isnull=True)
+            # conditions &= ~Q(content_type='group')
         articles = Article.objects.prefetch_related("publisher").filter(conditions)
         articles = articles.order_by(
             F("min_article_relevance").asc(nulls_last=True),
@@ -121,7 +126,8 @@ def get_articles(max_length=72, force_recache=False, **kwargs):
             lower_bound = page_num * max_length
             upper_bound = min((page_num + 1) * max_length, len(articles))
             articles = articles[lower_bound:upper_bound]
-        cache.set(kwargs_hash, articles, 60 * 60 * 48 if page_num == 0 else 10 * 60)
+        if grouped_articles:
+            cache.set(kwargs_hash, articles, 60 * 60 * 48 if page_num == 0 else 10 * 60)
         print(f"Got {kwargs_hash} from database and cached it")
     return kwargs_hash, articles, page_num + 1
 

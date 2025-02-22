@@ -4,7 +4,7 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline
 
-from .models import Article, FeedPosition
+from .models import Article, FeedPosition, ArticleGroup
 
 
 # Register your models here.
@@ -42,4 +42,21 @@ class ArticleAdmin(ModelAdmin):
     ordering = ("-added_date",)
     inlines = [
         FeedPositionInline,
+    ]
+
+
+class ArticleInline(TabularInline):
+    """Table of feeds to be shown in single-Publisher view"""
+
+    model = Article
+    fk_name = "article_group"
+    extra = 0
+
+
+@admin.register(ArticleGroup)
+class ArticleGroupAdmin(ModelAdmin):
+    """Main Admin ArticleGroup View"""
+
+    inlines = [
+        ArticleInline,
     ]
