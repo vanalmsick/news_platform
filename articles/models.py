@@ -5,7 +5,7 @@ import urllib
 
 from django.db import models
 from django.db.models import Max, Min
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import post_delete, pre_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from feeds.models import NEWS_IMPORTANCE, Feed, Publisher
@@ -15,24 +15,19 @@ from feeds.models import NEWS_IMPORTANCE, Feed, Publisher
 class ArticleGroup(models.Model):
     """Django Model Class for grouping single articles/video about the same topic"""
 
-    title = models.CharField(max_length=30)
-    summary = models.CharField(max_length=250, null=True)
-    full_text = models.TextField(null=True)
-    author = models.CharField(max_length=50, null=True)
-    link = models.URLField(null=True)
-    pub_date = models.DateTimeField(null=True)
-    guid = models.CharField(max_length=75, null=True)
-    image_url = models.TextField(null=True)
-    min_feed_position = models.SmallIntegerField()
-    min_article_relevance = models.DecimalField(null=True, decimal_places=6, max_digits=12)
-    max_importance = models.SmallIntegerField(choices=NEWS_IMPORTANCE)
-    categories = models.CharField(max_length=250, null=True)
-    language = models.CharField(max_length=6, null=True)
-    hash = models.CharField(max_length=80)
+    combined_article = models.ForeignKey("Article", on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         """print-out name of individual entry"""
-        return f"{self.title}"
+        return f"{'None' if self.combined_article is None else self.combined_article.title}"
+
+
+@receiver(pre_delete, sender=ArticleGroup)
+def delete_articlegroup_hook(sender, instance, using, **kwargs):
+    try:
+        instance.combined_article.delete()
+    except:  # noqa: E722
+        pass
 
 
 class Article(models.Model):
@@ -55,6 +50,7 @@ class Article(models.Model):
     importance_type = models.CharField(choices=IMPORTANCE_TYPES, max_length=8, default="normal")
     CONTENT_TYPES = [
         ("article", "Article"),
+        ("group", "Article Group"),
         ("ticker", "Live News/Ticker"),
         ("briefing", "Briefing/Newsletter"),
         ("video", "Video"),

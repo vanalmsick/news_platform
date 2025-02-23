@@ -22,7 +22,9 @@ RUN apt-get install -y liblzma-dev
 
 # Add non-root user "app_user"
 RUN useradd -U app_user \
-    && install -d -m 0755 -o app_user -g app_user /news_platform
+    && install -d -m 0755 -o app_user -g app_user /news_platform \
+    && mkdir /home/app_user \
+    && chown app_user:app_user /home/app_user
 USER app_user:app_user
 
 # Copy code and make dir editable by "app_user"

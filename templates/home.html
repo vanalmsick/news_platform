@@ -99,7 +99,6 @@
     </div>
 
 
-    <!-- The Modal -->
     <div id="myModal" class="modal">
         <div class="modal-dialog modal-fullscreen">
             <div class="modal-content">
@@ -396,8 +395,8 @@
                         <div class="row mb-2 flex-fill">
                             {% for article in articles %}
                                 {% if article is not None and article.publisher is not None %}
-                                    <div id="{{ article.pk }}"
-                                         class="context-card col-12 col-sm-6 col-md-4 col-xl-3 my-2"
+                                    <div id="{{ article.pk }}" method="{% if article.has_full_text %}view{% else %}redirect{% endif %}"
+                                         class="context-card col-12 col-sm-6 col-md-4 col-xl-3 my-2 articlegroupclick"
                                          tabindex="{{ forloop.counter|add:"8" }}"
                                          style="cursor: pointer;-webkit-user-select: none;-webkit-touch-callout: none;-webkit-user-drag: none;"
                                          data-read-later="{{ article.read_later }}">
@@ -406,12 +405,13 @@
                                                 {% elif article.importance_type == 'headline' or 'headline' in article.categories|lower %} headline
                                                 {% endif %}
                                                 {% if article.content_type == 'ticker' or 'ticker' in article.categories|lower %} live
-                                                {% elif article.content_type == 'briefing' or 'briefing' in article.categories|lower %} briefing
+                                                {% elif article.content_type == 'briefing' or article.content_type == 'group' or 'briefing' in article.categories|lower %} briefing
                                                 {% endif %}">
                                             {% if article.image_url != Null %}
                                                 <img class="card-img-top" alt="Thumbnail" style="width: 100%;"
                                                      referrerpolicy="no-referrer"
-                                                     src="{{ article.image_url }}" loading="lazy" onerror="imgError({{ article.pk }});">
+                                                     src="{{ article.image_url }}" loading="lazy"
+                                                     onerror="imgError({{ article.pk }});">
                                             {% endif %}
                                             <div class="card-body d-flex flex-column align-items-start text-break">
                                                 <strong class="d-inline-block mb-2 text-primary"
@@ -501,7 +501,9 @@
 
                                                     <div class="mb-1 text-muted"
                                                          style="font-family: Georgia, serif;">
-                                                        {% if article.content_type == 'ticker' or 'ticker' in article.categories|lower %}
+                                                        {% if article.content_type == 'group' %}
+                                                            <span class="label label-briefing">topic</span>
+                                                        {% elif article.content_type == 'ticker' or 'ticker' in article.categories|lower %}
                                                             <span class="label label-live">live</span>
                                                         {% elif article.content_type == 'briefing' or 'briefing' in article.categories|lower %}
                                                             <span class="label label-briefing">briefing</span>
@@ -533,24 +535,39 @@
                                                                 <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672z"/>
                                                             </svg>
                                                         {% endif %}
+                                                        </a>
                                                     </div>
 
-                                                    <p class="card-text mb-auto"
-                                                       style="font-family: Georgia, serif;">
-                                                        {% if article.extract != None %}
-                                                            {{ article.extract|truncatechars:255|safe }}{% endif %}</p>
+                                                    {% if article.extract != None and article.content_type != 'group' %}
+                                                        <p class="card-text mb-auto"
+                                                           style="font-family: Georgia, serif;">
+                                                            {{ article.extract|truncatechars:255|safe }}
+                                                        </p>
 
+
+                                                        <a class="stretched-link"
+                                                                {% if article.has_full_text == False %}
+                                                           href="{{ article.link }}" target="_blank"
+                                                           referrerpolicy="no-referrer"
+                                                                {% else %}
+                                                           href="/view/{{ article.pk }}/{% if debug %}?debug=true{% endif %}"
+                                                           target="_self"
+                                                           referrerpolicy="no-referrer"
+                                                                {% endif %}></a>
+                                                    {% endif %}
                                                 {% endif %}
-                                                <a class="stretched-link"
-                                                        {% if article.has_full_text == False %}
-                                                   href="{{ article.link }}" target="_blank"
-                                                   referrerpolicy="no-referrer"
-                                                        {% else %}
-                                                   href="/view/{{ article.pk }}/{% if debug %}?debug=true{% endif %}"
-                                                   target="_self"
-                                                   referrerpolicy="no-referrer"
-                                                        {% endif %}></a>
                                             </div>
+
+                                            {% if article.content_type == 'group' %}
+                                                <div class="px-3">
+                                                    <b><small>Further articles:</small></b>
+                                                    <table class="table table-hover small articlegroupclick"
+                                                           style="font-family: Georgia, serif;">
+                                                        {{ article.full_text_html|safe }}
+                                                    </table>
+                                                </div>
+                                            {% endif %}
+
                                         </div>
                                     </div>
                                 {% endif %}
@@ -764,6 +781,27 @@
         function scrollToPageTop() {
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
+        }
+
+        const elements = document.getElementsByClassName('articlegroupclick');
+        for (let i = 0; i < elements.length; i++) {
+            elements[i].addEventListener('click', function (e) {
+                var elmnt = e.target;
+                var card1 = elmnt.closest('tr');
+                var card2 = elmnt.closest('.card');
+                var article = -1;
+                var method = 'redirect';
+                if (card1 === null) {
+                    article = card2.parentElement.id;
+                    method = card2.parentElement.getAttribute('method');
+                    console.log(card2.parentElement);
+                } else {
+                    article = card1.id;
+                    method = card1.getAttribute('method');
+                }
+                console.log('Group article clicked:', article);
+                window.open('/' + method + '/' + article + '/', '_blank');
+            });
         }
 
 
