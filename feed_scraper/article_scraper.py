@@ -88,7 +88,12 @@ def find_grouped_articles():
 
             # get existing ArticleGroup
             if common_article_group != -1 and all_same_groups:
-                article_group = ArticleGroup.objects.get(id=common_article_group)
+                article_group = ArticleGroup.objects.filter(id=common_article_group)
+                if len(article_group) > 0:
+                    article_group = article_group[0]
+                else:
+                    article_group = ArticleGroup()
+                    article_group.save()
 
             # create new ArticleGroup
             else:
