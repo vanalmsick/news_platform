@@ -171,7 +171,7 @@
 
             <div class="mb-2 border-bottom">
                 {% for group, entry_lst in marketData.items %}
-                    <div class="p-2 px-3 mt-3 bg-body shadow-sm d-flex justify-content-between fs-5 fw-bold">{{ group.name }}</div>
+                    <div class="p-2 px-3 mt-3 bg-body shadow-sm d-flex justify-content-between fs-5 fw-bold">{{ group }}</div>
                     {% for data in entry_lst %}
                         <div class="p-2 px-3 bg-body shadow-sm d-flex justify-content-between fs-6 text-muted">
                             <div class="text-left">
@@ -319,7 +319,7 @@
                     <div class="row">
                         <div class="col-md-12">
                             <div class="market-data-div bg-body shadow-sm p-2 fw-bold" style="margin: 4px 1px;">
-                                {{ group.name }}
+                                {{ group }}
                             </div>
                             {% for data in entry_lst %}
                                 <div class="market-data-div bg-body shadow-sm p-2 text-muted" style="margin: 4px 1px;">

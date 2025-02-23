@@ -126,6 +126,7 @@ def homeView(request, article=None):
     """Return django view of home page"""
     # update_feeds()
     # refresh_all_pages()
+    # scrape_market_data()
 
     # Get Articles
     kwargs_hash, articles, page_num = (
