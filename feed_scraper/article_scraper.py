@@ -75,77 +75,80 @@ def find_grouped_articles():
         }
 
         for _, article_pos in grouped_article_groups.items():
-            existing_article_groups = [articles_query[i]["article_group"] for i in article_pos]
-            article_ids = [articles_query[i]["id"] for i in article_pos]
-            common_article_group = max([-1] + [x.id for x in existing_article_groups if x is not None])
-            all_same_groups = all([i is None or i.id == common_article_group for i in existing_article_groups])
+            if len(article_pos) < 10:  # ensure not insane large article groups - probably incorrect group then
+                existing_article_groups = [articles_query[i]["article_group"] for i in article_pos]
+                article_ids = [articles_query[i]["id"] for i in article_pos]
+                common_article_group = max([-1] + [x.id for x in existing_article_groups if x is not None])
+                all_same_groups = all([i is None or i.id == common_article_group for i in existing_article_groups])
 
-            # if different existing article groups - delete existing grouped articles
-            if all_same_groups is False:
-                for i in existing_article_groups:
-                    if i is not None:
-                        i.delete()
+                # if different existing article groups - delete existing grouped articles
+                if all_same_groups is False:
+                    for i in existing_article_groups:
+                        if i is not None:
+                            i.delete()
 
-            # get existing ArticleGroup
-            if common_article_group != -1 and all_same_groups:
-                article_group = ArticleGroup.objects.filter(id=common_article_group)
-                if len(article_group) > 0:
-                    article_group = article_group[0]
+                # get existing ArticleGroup
+                if common_article_group != -1 and all_same_groups:
+                    article_group = ArticleGroup.objects.filter(id=common_article_group)
+                    if len(article_group) > 0:
+                        article_group = article_group[0]
+                    else:
+                        article_group = ArticleGroup()
+                        article_group.save()
+
+                # create new ArticleGroup
                 else:
                     article_group = ArticleGroup()
                     article_group.save()
 
-            # create new ArticleGroup
-            else:
-                article_group = ArticleGroup()
+                # add ArticleGroup to articles
+                for article_id in article_ids:
+                    article = Article.objects.get(id=article_id)
+                    setattr(article, "article_group", article_group)
+                    article.save()
+
+                articles = Article.objects.filter(article_group__id=article_group.id).order_by("min_article_relevance")
+
+                categories = ";".join(set(";".join(i.categories for i in articles).split(";")))
+                extract_html_rows = "\n".join(
+                    [
+                        f'<tr id="{i.pk}" class="context-card" method="{"view" if i.has_full_text else "redirect"}"><td>{i.title}<br><span class="text-muted">{i.publisher.name} - <script>document.write(createDateStr("{i.pub_date.isoformat()}", "{i.added_date.isoformat()}", "medium"));</script></span></td></tr>'
+                        for i in articles[1:]
+                    ]
+                )
+                extract_html = f"\n<tbody>\n{extract_html_rows}\n</tbody>\n"
+
+                combined_article = Article(
+                    title=articles[0].title,
+                    publisher=articles[0].publisher,
+                    link=articles[0].link,
+                    image_url=articles[0].image_url,
+                    language=articles[0].language,
+                    mailto_link=articles[0].mailto_link,
+                    content_type="group",
+                    pub_date=articles.aggregate(Max("pub_date"))["pub_date__max"],
+                    added_date=articles.aggregate(Max("added_date"))["added_date__max"],
+                    last_updated_date=articles.aggregate(Max("last_updated_date"))["last_updated_date__max"],
+                    publisher_article_position=articles.aggregate(Min("publisher_article_position"))[
+                        "publisher_article_position__min"
+                    ],
+                    min_feed_position=articles.aggregate(Min("min_feed_position"))["min_feed_position__min"],
+                    min_article_relevance=articles.aggregate(Min("min_article_relevance"))[
+                        "min_article_relevance__min"
+                    ],
+                    max_importance=articles.aggregate(Max("max_importance"))["max_importance__max"],
+                    extract=articles[0].extract,
+                    categories=categories,
+                    full_text_html=extract_html,
+                    full_text_text=articles[0].full_text_text,
+                    has_full_text=False,
+                    ai_summary=articles[0].ai_summary,
+                    hash="group_" + str(random.randint(1, 1_000_000_000_000_000)),
+                )
+                combined_article.save()
+
+                setattr(article_group, "combined_article", combined_article)
                 article_group.save()
-
-            # add ArticleGroup to articles
-            for article_id in article_ids:
-                article = Article.objects.get(id=article_id)
-                setattr(article, "article_group", article_group)
-                article.save()
-
-            articles = Article.objects.filter(article_group__id=article_group.id).order_by("min_article_relevance")
-
-            categories = ";".join(set(";".join(i.categories for i in articles).split(";")))
-            extract_html_rows = "\n".join(
-                [
-                    f'<tr id="{i.pk}" class="context-card" method="{"view" if i.has_full_text else "redirect"}"><td>{i.title}<br><span class="text-muted">{i.publisher.name}</span></td></tr>'
-                    for i in articles[1:]
-                ]
-            )
-            extract_html = f"\n<tbody>\n{extract_html_rows}\n</tbody>\n"
-
-            combined_article = Article(
-                title=articles[0].title,
-                publisher=articles[0].publisher,
-                link=articles[0].link,
-                image_url=articles[0].image_url,
-                language=articles[0].language,
-                mailto_link=articles[0].mailto_link,
-                content_type="group",
-                pub_date=articles.aggregate(Max("pub_date"))["pub_date__max"],
-                added_date=articles.aggregate(Max("added_date"))["added_date__max"],
-                last_updated_date=articles.aggregate(Max("last_updated_date"))["last_updated_date__max"],
-                publisher_article_position=articles.aggregate(Min("publisher_article_position"))[
-                    "publisher_article_position__min"
-                ],
-                min_feed_position=articles.aggregate(Min("min_feed_position"))["min_feed_position__min"],
-                min_article_relevance=articles.aggregate(Min("min_article_relevance"))["min_article_relevance__min"],
-                max_importance=articles.aggregate(Max("max_importance"))["max_importance__max"],
-                extract=articles[0].extract,
-                categories=categories,
-                full_text_html=extract_html,
-                full_text_text=articles[0].full_text_text,
-                has_full_text=False,
-                ai_summary=articles[0].ai_summary,
-                hash="group_" + str(random.randint(1, 1_000_000_000_000_000)),
-            )
-            combined_article.save()
-
-            setattr(article_group, "combined_article", combined_article)
-            article_group.save()
 
     ArticleGroup.objects.filter(article=None).delete()
     Article.objects.filter(content_type="group", articlegroup__isnull=True).delete()
