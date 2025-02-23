@@ -88,6 +88,51 @@ def __get_quote_table(ticker, headers={"User-agent": "Mozilla/5.0"}):
     return converted_data
 
 
+def active_gainers_loosers():
+    url = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
+
+    results = {}
+    for screen in ["MOST_ACTIVES", "DAY_GAINERS", "DAY_LOSERS"]:
+        querystring = {
+            "count": "25",
+            "formatted": "true",
+            "scrIds": screen,
+            "start": "0",
+            "useRecordsResponse": "false",
+            "fields": "ticker,symbol,shortName,regularMarketPrice,regularMarketChange,regularMarketChangePercent,regularMarketVolume,averageDailyVolume3Month,marketCap,trailingPE,fiftyTwoWeekChangePercent,fiftyTwoWeekRange,regularMarketOpen",
+        }
+
+        request = requests.request("GET", url, params=querystring, impersonate="chrome")
+        data = request.json().get("finance", {}).get("result", [{}])[0].get("quotes", [])
+        data_clean = [
+            {k: (v.get("raw", v) if isinstance(v, dict) else v) for k, v in kwargs.items()} for kwargs in data
+        ]
+        data_table = pd.DataFrame(data_clean)
+        top5 = data_table[data_table["marketCap"] > 5_000_000].iloc[:5]
+
+        nice_screen = screen.replace("_", " ").title()
+        for idx, row in top5.iterrows():
+            if nice_screen not in results:
+                results[nice_screen] = []
+
+            results[nice_screen].append(
+                {
+                    "source": {
+                        "name": row["shortName"],
+                        "pinned": False,
+                        "notification_threshold": 20,
+                        "data_source": "yf",
+                    },
+                    "worst_perf_idx": idx,
+                    "market_closed": False,
+                    "change_today": row["regularMarketChangePercent"],
+                    "change_today_abs": abs(row["regularMarketChangePercent"]),
+                }
+            )
+
+    return results
+
+
 def scrape_market_data():
     """Get all data sources, scrape the data from the web, and update cached market data."""
 
@@ -181,11 +226,15 @@ def scrape_market_data():
                     f" Alert - {notification.source.name}: {e}"
                 )
 
+    data_active_gainers_loosers = active_gainers_loosers()
+
     final_data = {}
     for i in latest_data:
-        if i.source.group not in final_data:
-            final_data[i.source.group] = []
-        final_data[i.source.group].append(i)
+        if i.source.group.name not in final_data:
+            final_data[i.source.group.name] = []
+        final_data[i.source.group.name].append(i)
+
+    final_data = {**final_data, **data_active_gainers_loosers}
 
     # delete market data older than 45 days
     DataEntry.objects.filter(
