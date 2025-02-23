@@ -98,7 +98,7 @@ def get_articles(max_length=72, force_recache=False, grouped_articles=True, **kw
             conditions &= Q(article_group__isnull=True)
         else:
             conditions &= Q(articlegroup__isnull=True)
-            # conditions &= ~Q(content_type='group')
+            conditions &= ~Q(content_type="group")
         articles = Article.objects.prefetch_related("publisher").filter(conditions)
         articles = articles.order_by(
             F("min_article_relevance").asc(nulls_last=True),
@@ -128,7 +128,7 @@ def get_articles(max_length=72, force_recache=False, grouped_articles=True, **kw
             articles = articles[lower_bound:upper_bound]
         if grouped_articles:
             cache.set(kwargs_hash, articles, 60 * 60 * 48 if page_num == 0 else 10 * 60)
-        print(f"Got {kwargs_hash} from database and cached it")
+        print(f"Got {kwargs_hash} from database" + (" and cached it" if grouped_articles else ""))
     return kwargs_hash, articles, page_num + 1
 
 

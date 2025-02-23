@@ -395,7 +395,7 @@
                         <div class="row mb-2 flex-fill">
                             {% for article in articles %}
                                 {% if article is not None and article.publisher is not None %}
-                                    <div id="{{ article.pk }}"
+                                    <div id="{{ article.pk }}" method="{% if article.has_full_text %}view{% else %}redirect{% endif %}"
                                          class="context-card col-12 col-sm-6 col-md-4 col-xl-3 my-2 articlegroupclick"
                                          tabindex="{{ forloop.counter|add:"8" }}"
                                          style="cursor: pointer;-webkit-user-select: none;-webkit-touch-callout: none;-webkit-user-drag: none;"
@@ -563,7 +563,7 @@
                                                     <b><small>Further articles:</small></b>
                                                     <table class="table table-hover small articlegroupclick"
                                                            style="font-family: Georgia, serif;">
-                                                        {{ article.extract|safe }}
+                                                        {{ article.full_text_html|safe }}
                                                     </table>
                                                 </div>
                                             {% endif %}
@@ -790,13 +790,17 @@
                 var card1 = elmnt.closest('tr');
                 var card2 = elmnt.closest('.card');
                 var article = -1;
+                var method = 'redirect';
                 if (card1 === null) {
                     article = card2.parentElement.id;
+                    method = card2.parentElement.getAttribute('method');
+                    console.log(card2.parentElement);
                 } else {
                     article = card1.id;
+                    method = card1.getAttribute('method');
                 }
                 console.log('Group article clicked:', article);
-                window.open('/redirect/' + article + '/', '_blank');
+                window.open('/' + method + '/' + article + '/', '_blank');
             });
         }
 

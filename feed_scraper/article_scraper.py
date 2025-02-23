@@ -111,7 +111,7 @@ def find_grouped_articles():
             categories = ";".join(set(";".join(i.categories for i in articles).split(";")))
             extract_html_rows = "\n".join(
                 [
-                    f'<tr id="{i.pk}"><td>{i.title}<br><span class="text-muted">{i.publisher.name}</span></td></tr>'
+                    f'<tr id="{i.pk}" class="context-card" method="{"view" if i.has_full_text else "redirect"}"><td>{i.title}<br><span class="text-muted">{i.publisher.name}</span></td></tr>'
                     for i in articles[1:]
                 ]
             )
@@ -134,11 +134,11 @@ def find_grouped_articles():
                 min_feed_position=articles.aggregate(Min("min_feed_position"))["min_feed_position__min"],
                 min_article_relevance=articles.aggregate(Min("min_article_relevance"))["min_article_relevance__min"],
                 max_importance=articles.aggregate(Max("max_importance"))["max_importance__max"],
-                extract=extract_html,
+                extract=articles[0].extract,
                 categories=categories,
-                full_text_html=articles[0].full_text_html,
+                full_text_html=extract_html,
                 full_text_text=articles[0].full_text_text,
-                has_full_text=articles[0].has_full_text,
+                has_full_text=False,
                 ai_summary=articles[0].ai_summary,
                 hash="group_" + str(random.randint(1, 1_000_000_000_000_000)),
             )
@@ -147,6 +147,7 @@ def find_grouped_articles():
             setattr(article_group, "combined_article", combined_article)
             article_group.save()
 
+    ArticleGroup.objects.filter(article=None).delete()
     Article.objects.filter(content_type="group", articlegroup__isnull=True).delete()
     print(f"Found {len(pages_kwargs)} article groups.")
 
