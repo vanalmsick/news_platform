@@ -413,7 +413,7 @@
                                                      src="{{ article.image_url }}" loading="lazy"
                                                      onerror="imgError({{ article.pk }});">
                                             {% endif %}
-                                            <div class="card-body d-flex flex-column align-items-start text-break">
+                                            <div class="card-body d-flex flex-column align-items-start text-break {% if article.content_type == 'group' %}pb-0{% endif %}">
                                                 <strong class="d-inline-block mb-2 text-primary"
                                                         style="font-family: Georgia, serif;">{{ article.genre }}</strong>
                                                 <h3 class="mb-0  fs-5"
