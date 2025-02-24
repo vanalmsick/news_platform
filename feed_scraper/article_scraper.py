@@ -110,12 +110,11 @@ def find_grouped_articles():
                 articles = Article.objects.filter(article_group__id=article_group.id).order_by("min_article_relevance")
 
                 categories = ";".join(set(";".join(i.categories for i in articles).split(";")))
-                extract_html_rows = "\n".join(
-                    [
-                        f'<tr id="{i.pk}" class="context-card" method="{"view" if i.has_full_text else "redirect"}"><td>{i.title}<br><span class="text-muted">{i.publisher.name} - <script>document.write(createDateStr("{i.pub_date.isoformat()}", "{i.added_date.isoformat()}", "medium"));</script></span></td></tr>'
-                        for i in articles[1:]
-                    ]
-                )
+                extract_html_rows = [
+                    f'<tr id="{i.pk}" class="context-card" method="{"view" if i.has_full_text else "redirect"}"><td>{i.title}<br><span class="text-muted">{i.publisher.name} - <script>document.write(createDateStr("{i.pub_date.isoformat()}", "{i.added_date.isoformat()}", "medium"));</script></span></td></tr>'
+                    for i in articles[1:]
+                ]
+                extract_html_rows = "\n".join(extract_html_rows[: min(3, len(extract_html_rows))])
                 extract_html = f"\n<tbody>\n{extract_html_rows}\n</tbody>\n"
 
                 combined_article = Article(
