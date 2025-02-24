@@ -6,8 +6,8 @@ import traceback
 from io import StringIO
 
 import pandas as pd
-from curl_cffi import requests  # type: ignore
 from bs4 import BeautifulSoup
+from curl_cffi import requests  # type: ignore
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import F, Q, SmallIntegerField
@@ -89,36 +89,93 @@ def __get_quote_table(ticker, headers={"User-agent": "Mozilla/5.0"}):
 
 
 def active_gainers_loosers():
-    url = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved"
+    url_crumb = "https://query1.finance.yahoo.com/v1/test/getcrumb"
+    request_crumb = requests.request("GET", url_crumb, impersonate="chrome")
+
+    url = "https://query1.finance.yahoo.com/v1/finance/screener"
+
+    querystring = {
+        "formatted": "true",
+        "useRecordsResponse": "true",
+        "lang": "en-US",
+        "region": "US",
+        "crumb": request_crumb.text,
+    }
 
     results = {}
-    for screen in ["MOST_ACTIVES", "DAY_GAINERS", "DAY_LOSERS"]:
+    for screen, sortField, sortType in [
+        ("Most Active Stocks (G7)", "dayvolume", "desc"),
+        ("Stock Gainers (G7)", "percentchange", "desc"),
+        ("Stock Losers (G7)", "percentchange", "asc"),
+    ]:
         querystring = {
-            "count": "25",
-            "formatted": "true",
-            "scrIds": screen,
-            "start": "0",
-            "useRecordsResponse": "false",
-            "fields": "ticker,symbol,shortName,regularMarketPrice,regularMarketChange,regularMarketChangePercent,regularMarketVolume,averageDailyVolume3Month,marketCap,trailingPE,fiftyTwoWeekChangePercent,fiftyTwoWeekRange,regularMarketOpen",
+            "size": 5,
+            "offset": 0,
+            "sortType": sortType,
+            "sortField": sortField,
+            "includeFields": [
+                "ticker",
+                "companyshortname",
+                "intradayprice",
+                "intradaypricechange",
+                "percentchange",
+                "dayvolume",
+                "avgdailyvol3m",
+                "intradaymarketcap",
+                "peratio.lasttwelvemonths",
+                "day_open_price",
+                "fiftytwowklow",
+                "fiftytwowkhigh",
+            ],
+            "topOperator": "AND",
+            "query": {
+                "operator": "and",
+                "operands": [
+                    {
+                        "operator": "or",
+                        "operands": [
+                            {"operator": "eq", "operands": ["region", "us"]},
+                            {"operator": "eq", "operands": ["region", "de"]},
+                            {"operator": "eq", "operands": ["region", "fr"]},
+                            {"operator": "eq", "operands": ["region", "gb"]},
+                            {"operator": "eq", "operands": ["region", "jp"]},
+                            {"operator": "eq", "operands": ["region", "it"]},
+                            {"operator": "eq", "operands": ["region", "ca"]},
+                        ],
+                    },
+                    {
+                        "operator": "or",
+                        "operands": [{"operator": "gt", "operands": ["intradaymarketcap", 5_000_000_000]}],
+                    },
+                    {"operator": "or", "operands": [{"operator": "gt", "operands": ["dayvolume", 1_000_000]}]},
+                    {"operator": "or", "operands": [{"operator": "gt", "operands": ["intradayprice", 10]}]},
+                ],
+            },
+            "quoteType": "EQUITY",
         }
 
-        request = requests.request("GET", url, params=querystring, impersonate="chrome")
+        request = requests.request(
+            "POST",
+            url,
+            json=querystring,
+            cookies=request_crumb.cookies,
+            headers={"x-crumb": request_crumb.text},
+            impersonate="chrome",
+        )
         data = request.json().get("finance", {}).get("result", [{}])[0].get("quotes", [])
         data_clean = [
             {k: (v.get("raw", v) if isinstance(v, dict) else v) for k, v in kwargs.items()} for kwargs in data
         ]
-        data_table = pd.DataFrame(data_clean)
-        top5 = data_table[data_table["marketCap"] > 5_000_000].iloc[:5]
+        top5 = pd.DataFrame(data_clean)
 
-        nice_screen = screen.replace("_", " ").title()
         for idx, row in top5.iterrows():
-            if nice_screen not in results:
-                results[nice_screen] = []
+            if screen not in results:
+                results[screen] = []
 
-            results[nice_screen].append(
+            results[screen].append(
                 {
                     "source": {
-                        "name": row["shortName"],
+                        "name": row["shortName"].title() if row["shortName"].isupper() else row["shortName"],
                         "pinned": False,
                         "notification_threshold": 20,
                         "data_source": "yf",
