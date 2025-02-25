@@ -175,7 +175,7 @@ def active_gainers_loosers():
             results[screen].append(
                 {
                     "source": {
-                        "name": row["shortName"].title() if row["shortName"].isupper() else row["shortName"],
+                        "name": f'{row["shortName"].title() if row["shortName"].isupper() else row["shortName"]} ({row["region"]})',
                         "pinned": False,
                         "notification_threshold": 20,
                         "data_source": "yf",
@@ -289,9 +289,9 @@ def scrape_market_data():
     for i in latest_data:
         if i.source.group.name not in final_data:
             final_data[i.source.group.name] = []
+            if i.source.group.name.lower() == "indices":
+                final_data = {**final_data, **data_active_gainers_loosers}
         final_data[i.source.group.name].append(i)
-
-    final_data = {**final_data, **data_active_gainers_loosers}
 
     # delete market data older than 45 days
     DataEntry.objects.filter(

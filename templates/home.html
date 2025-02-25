@@ -405,7 +405,7 @@
                                                 {% elif article.importance_type == 'headline' or 'headline' in article.categories|lower %} headline
                                                 {% endif %}
                                                 {% if article.content_type == 'ticker' or 'ticker' in article.categories|lower %} live
-                                                {% elif article.content_type == 'briefing' or article.content_type == 'group' or 'briefing' in article.categories|lower %} briefing
+                                                {% elif article.content_type == 'briefing' or 'briefing' in article.categories|lower %} briefing
                                                 {% endif %}">
                                             {% if article.image_url != Null %}
                                                 <img class="card-img-top" alt="Thumbnail" style="width: 100%;"
@@ -501,9 +501,7 @@
 
                                                     <div class="mb-1 text-muted"
                                                          style="font-family: Georgia, serif;">
-                                                        {% if article.content_type == 'group' %}
-                                                            <span class="label label-briefing">topic</span>
-                                                        {% elif article.content_type == 'ticker' or 'ticker' in article.categories|lower %}
+                                                        {% if article.content_type == 'ticker' or 'ticker' in article.categories|lower %}
                                                             <span class="label label-live">live</span>
                                                         {% elif article.content_type == 'briefing' or 'briefing' in article.categories|lower %}
                                                             <span class="label label-briefing">briefing</span>
@@ -560,7 +558,7 @@
 
                                             {% if article.content_type == 'group' %}
                                                 <div class="px-3">
-                                                    <b><small>Further articles:</small></b>
+                                                    <p class="my-1"><b><small>Further articles:</small></b></p>
                                                     <table class="table table-hover small articlegroupclick"
                                                            style="font-family: Georgia, serif;">
                                                         {{ article.full_text_html|safe }}
