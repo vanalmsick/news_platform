@@ -180,11 +180,24 @@
         }
 
 
-        /**
-         present the right click context menu ONLY for the elements having the right class
-         by replacing the 0 or any digit after the "to-" string with the element id , which
-         triggered the event
-         */
+        /* Mouse left-click */
+        document.onclick = function (e) {
+            var elmnt = e.target
+            var card = elmnt.closest('.context-card');
+            if (card && card.contains(elmnt)) {
+                e.preventDefault();
+                const article = card.getAttribute('article_id');
+                const method = card.getAttribute('article_target');
+                if (method == 'view') {
+                    window.location = '/view/' + article + '/';
+                } else {
+                    window.open('/redirect/' + article + '/');
+                }
+            }
+        }
+
+
+        /* Mouse right-click or context menu */
         document.oncontextmenu = function (e) {
             //alert(e.target.id)
             var elmnt = e.target
@@ -292,16 +305,17 @@
             // remove existing context menu if one already exists
             deleteContextMenu();
 
-            const article = card.id.replace("side_", "");
+            const article = card.getAttribute('article_id');
+            const method = card.getAttribute('article_target');
             var base_url = window.location.origin;
             let read_later_source = card.getAttribute("data-read-later") === "True";
             let read_later_session = sessionStorage.getItem("read_later_" + article);
             let read_later_final = read_later_session == undefined ? read_later_source : read_later_session === "true";
 
-            let lst_1 = '<li class="list-group-item" onclick="window.location = &quot;/view/' + article + '/&quot;;">Open Article</li>';
-            let lst_2 = '<li class="list-group-item" onclick="window.open(&quot;/view/' + article + '/&quot;);">Open in New Tab</li>';
+            let lst_1 = '<li class="list-group-item" onclick="window.location = &quot;/' + method + '/' + article + '/&quot;;">Open Article</li>';
+            let lst_2 = '<li class="list-group-item" onclick="window.open(&quot;/' + method + '/' + article + '/&quot;);">Open in New Tab</li>';
             let lst_3 = '<li class="list-group-item" onclick="window.open(&quot;/redirect/' + article + '/&quot;);">Open Source Article</li>';
-            let lst_4 = '<li class="list-group-item" onclick="copyToClipboard(&quot;' + base_url + '/view/' + article + '/&quot;);">Copy Link</li>';
+            let lst_4 = '<li class="list-group-item" onclick="copyToClipboard(&quot;' + base_url + '/'+ method + '/' + article + '/&quot;);">Copy Link</li>';
             let lst_5 = '<li class="list-group-item" onclick="readLaterRequest(&quot;' + article + '&quot;,' + (read_later_final ? '&quot;remove&quot;' : '&quot;add&quot;') + ');">' + (read_later_final ? 'Remove from' : 'Add to') + ' Reading List</li>';
 
             let menu = document.createElement("div")
