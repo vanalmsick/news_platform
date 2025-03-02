@@ -396,6 +396,7 @@
                             {% for article in articles %}
                                 {% if article is not None and article.publisher is not None %}
                                     <div id="{{ article.pk }}" method="{% if article.has_full_text %}view{% else %}redirect{% endif %}"
+                                         article_id="{{ article.pk }}" article_target="{% if article.has_full_text == False %}redirect{% else %}view{% endif %}"
                                          class="context-card col-12 col-sm-6 col-md-4 col-xl-3 my-2 articlegroupclick"
                                          tabindex="{{ forloop.counter|add:"8" }}"
                                          style="cursor: pointer;-webkit-user-select: none;-webkit-touch-callout: none;-webkit-user-drag: none;"
@@ -607,6 +608,7 @@
                 {% for side_article in sidebar %}
                     {% if side_article is not None and side_article.publisher is not None %}
                         <a id="side_{{ side_article.pk }}"
+                           article_id="{{ side_article.pk }}" article_target="{% if side_article.has_full_text == False %}redirect{% else %}view{% endif %}"
                            class="context-card list-group-item list-group-item-action
                                 {% if side_article.importance_type == 'breaking' or 'breaking' in side_article.categories|lower %} breaking
                                 {% elif side_article.importance_type == 'headline' or 'headline' in side_article.categories|lower or side_article.publisher.renowned >= 2 %} headline
@@ -779,27 +781,6 @@
         function scrollToPageTop() {
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
-        }
-
-        const elements = document.getElementsByClassName('articlegroupclick');
-        for (let i = 0; i < elements.length; i++) {
-            elements[i].addEventListener('click', function (e) {
-                var elmnt = e.target;
-                var card1 = elmnt.closest('tr');
-                var card2 = elmnt.closest('.card');
-                var article = -1;
-                var method = 'redirect';
-                if (card1 === null) {
-                    article = card2.parentElement.id;
-                    method = card2.parentElement.getAttribute('method');
-                    console.log(card2.parentElement);
-                } else {
-                    article = card1.id;
-                    method = card1.getAttribute('method');
-                }
-                console.log('Group article clicked:', article);
-                window.open('/' + method + '/' + article + '/', '_blank');
-            });
         }
 
 
