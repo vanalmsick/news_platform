@@ -143,11 +143,8 @@ def active_gainers_loosers():
                             {"operator": "eq", "operands": ["region", "ca"]},
                         ],
                     },
-                    {
-                        "operator": "or",
-                        "operands": [{"operator": "gt", "operands": ["intradaymarketcap", 5_000_000_000]}],
-                    },
-                    {"operator": "or", "operands": [{"operator": "gt", "operands": ["dayvolume", 1_000_000]}]},
+                    {"operator": "or", "operands": [{"operator": "gt", "operands": ["lastclosemarketcap.lasttwelvemonths", 10_000_000_000]}]},
+                    {"operator": "or", "operands": [{"operator": "gt", "operands": ["avgdailyvol3m", 500_000]}]},
                     {"operator": "or", "operands": [{"operator": "gt", "operands": ["intradayprice", 10]}]},
                 ],
             },
