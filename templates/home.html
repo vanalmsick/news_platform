@@ -173,47 +173,54 @@
                 {% for group, entry_lst in marketData.items %}
                     <div class="p-2 px-3 mt-3 bg-body shadow-sm d-flex justify-content-between fs-5 fw-bold">{{ group }}</div>
                     {% for data in entry_lst %}
-                        <div class="p-2 px-3 bg-body shadow-sm d-flex justify-content-between fs-6 text-muted">
-                            <div class="text-left">
-                                {% if data.market_closed %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
-                                         class="bi bi-moon-stars" viewBox="0 0 16 16">
-                                        <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/>
-                                        <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
-                                    </svg>
-                                {% elif data.source.pinned %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
-                                         class="bi bi-pin-angle" viewBox="0 0 16 16">
-                                        <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146m.122 2.112v-.002zm0-.002v.002a.5.5 0 0 1-.122.51L6.293 6.878a.5.5 0 0 1-.511.12H5.78l-.014-.004a5 5 0 0 0-.288-.076 5 5 0 0 0-.765-.116c-.422-.028-.836.008-1.175.15l5.51 5.509c.141-.34.177-.753.149-1.175a5 5 0 0 0-.192-1.054l-.004-.013v-.001a.5.5 0 0 1 .12-.512l3.536-3.535a.5.5 0 0 1 .532-.115l.096.022c.087.017.208.034.344.034q.172.002.343-.04L9.927 2.028q-.042.172-.04.343a1.8 1.8 0 0 0 .062.46z"/>
-                                    </svg>
-                                {% elif data.change_today == 0 %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" fill="currentColor"
-                                         class="bi bi-circle-fill m-1 mb-2" viewBox="0 0 16 16">
-                                        <circle cx="8" cy="8" r="8"/>
-                                    </svg>
-                                {% elif data.change_today > 0 %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                                         class="bi bi-caret-up-fill text-success" viewBox="0 0 16 16">
-                                        <path d="m7.247 4.86-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z"/>
-                                    </svg>
-                                {% else %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                                         class="bi bi-caret-down-fill text-danger" viewBox="0 0 16 16">
-                                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
-                                    </svg>
-                                {% endif %}
-                                {{ data.source.name }}
-                            </div>
-                            <div class="
+                        <div class="p-2 px-3 bg-body shadow-sm fs-6 text-muted">
+                            <div class="d-flex justify-content-between ">
+                                <div class="text-left">
+                                    {% if data.market_closed %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                             fill="currentColor"
+                                             class="bi bi-moon-stars" viewBox="0 0 16 16">
+                                            <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/>
+                                            <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
+                                        </svg>
+                                    {% elif data.source.pinned %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                             fill="currentColor"
+                                             class="bi bi-pin-angle" viewBox="0 0 16 16">
+                                            <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146m.122 2.112v-.002zm0-.002v.002a.5.5 0 0 1-.122.51L6.293 6.878a.5.5 0 0 1-.511.12H5.78l-.014-.004a5 5 0 0 0-.288-.076 5 5 0 0 0-.765-.116c-.422-.028-.836.008-1.175.15l5.51 5.509c.141-.34.177-.753.149-1.175a5 5 0 0 0-.192-1.054l-.004-.013v-.001a.5.5 0 0 1 .12-.512l3.536-3.535a.5.5 0 0 1 .532-.115l.096.022c.087.017.208.034.344.034q.172.002.343-.04L9.927 2.028q-.042.172-.04.343a1.8 1.8 0 0 0 .062.46z"/>
+                                        </svg>
+                                    {% elif data.change_today == 0 %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" fill="currentColor"
+                                             class="bi bi-circle-fill m-1 mb-2" viewBox="0 0 16 16">
+                                            <circle cx="8" cy="8" r="8"/>
+                                        </svg>
+                                    {% elif data.change_today > 0 %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                             fill="currentColor"
+                                             class="bi bi-caret-up-fill text-success" viewBox="0 0 16 16">
+                                            <path d="m7.247 4.86-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z"/>
+                                        </svg>
+                                    {% else %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                             fill="currentColor"
+                                             class="bi bi-caret-down-fill text-danger" viewBox="0 0 16 16">
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
+                                        </svg>
+                                    {% endif %}
+                                    {{ data.source.name }}
+                                </div>
+                                <div class="
                             {% if data.market_closed or data.change_today == 0 %}text-muted
                             {% elif data.change_today > data.source.notification_threshold %}bg-success bg-opacity-25 text-success
                             {% elif data.change_today > 0 %}text-success
                             {% elif data.change_today < 0 and data.change_today_abs > data.source.notification_threshold %}bg-danger bg-opacity-25 text-danger
                             {% else %}text-danger
                             {% endif %} text-right">
-                                {% if data.change_today > 0 %}+{% endif %}{{ data.change_today|floatformat:"2g" }}
-                                {% if data.source.data_source == 'te' %} bps{% else %}%{% endif %}
+                                    {% if data.change_today > 0 %}+{% endif %}{{ data.change_today|floatformat:"2g" }}
+                                    {% if data.source.data_source == 'te' %} bps{% else %}%{% endif %}
+                                </div>
                             </div>
+                            {% if data.source.tagline != None %}<div class="text-body-tertiary small"><i>({{ data.source.tagline }})</i></div>{% endif %}
                         </div>
                     {% endfor %}
                 {% endfor %}
@@ -395,8 +402,10 @@
                         <div class="row mb-2 flex-fill">
                             {% for article in articles %}
                                 {% if article is not None and article.publisher is not None %}
-                                    <div id="{{ article.pk }}" method="{% if article.has_full_text %}view{% else %}redirect{% endif %}"
-                                         article_id="{{ article.pk }}" article_target="{% if article.has_full_text == False %}redirect{% else %}view{% endif %}"
+                                    <div id="{{ article.pk }}"
+                                         method="{% if article.has_full_text %}view{% else %}redirect{% endif %}"
+                                         article_id="{{ article.pk }}"
+                                         article_target="{% if article.has_full_text == False %}redirect{% else %}view{% endif %}"
                                          class="context-card col-12 col-sm-6 col-md-4 col-xl-3 my-2 articlegroupclick"
                                          tabindex="{{ forloop.counter|add:"8" }}"
                                          style="cursor: pointer;-webkit-user-select: none;-webkit-touch-callout: none;-webkit-user-drag: none;"
@@ -608,7 +617,8 @@
                 {% for side_article in sidebar %}
                     {% if side_article is not None and side_article.publisher is not None %}
                         <a id="side_{{ side_article.pk }}"
-                           article_id="{{ side_article.pk }}" article_target="{% if side_article.has_full_text == False %}redirect{% else %}view{% endif %}"
+                           article_id="{{ side_article.pk }}"
+                           article_target="{% if side_article.has_full_text == False %}redirect{% else %}view{% endif %}"
                            class="context-card list-group-item list-group-item-action
                                 {% if side_article.importance_type == 'breaking' or 'breaking' in side_article.categories|lower %} breaking
                                 {% elif side_article.importance_type == 'headline' or 'headline' in side_article.categories|lower or side_article.publisher.renowned >= 2 %} headline
