@@ -89,6 +89,8 @@ def __get_quote_table(ticker, headers={"User-agent": "Mozilla/5.0"}):
 
 
 def active_gainers_loosers():
+    base_data = cache.get("market_base_data", {})
+
     url_crumb = "https://query1.finance.yahoo.com/v1/test/getcrumb"
     request_crumb = requests.request("GET", url_crumb, impersonate="chrome")
 
@@ -143,7 +145,12 @@ def active_gainers_loosers():
                             {"operator": "eq", "operands": ["region", "ca"]},
                         ],
                     },
-                    {"operator": "or", "operands": [{"operator": "gt", "operands": ["lastclosemarketcap.lasttwelvemonths", 10_000_000_000]}]},
+                    {
+                        "operator": "or",
+                        "operands": [
+                            {"operator": "gt", "operands": ["lastclosemarketcap.lasttwelvemonths", 10_000_000_000]}
+                        ],
+                    },
                     {"operator": "or", "operands": [{"operator": "gt", "operands": ["avgdailyvol3m", 500_000]}]},
                     {"operator": "or", "operands": [{"operator": "gt", "operands": ["intradayprice", 10]}]},
                 ],
@@ -169,12 +176,38 @@ def active_gainers_loosers():
             if screen not in results:
                 results[screen] = []
 
+            if row["symbol"] not in base_data:
+                profile_url = (
+                    f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{row['symbol']}?modules=assetProfile"
+                )
+                profile_response = requests.get(
+                    profile_url,
+                    cookies=request_crumb.cookies,
+                    headers={"x-crumb": request_crumb.text},
+                    impersonate="chrome",
+                )
+                if profile_response.ok:
+                    profile_data = profile_response.json()
+                    base_data[row["symbol"]] = (
+                        profile_data.get("quoteSummary", {}).get("result", [{}])[0].get("assetProfile", {})
+                    )
+                else:
+                    base_data[row["symbol"]] = None
+                cache.set("market_base_data", base_data, 604800)  # 7 days
+            if base_data[row["symbol"]] is None:
+                sector_country = None
+            else:
+                country = base_data[row["symbol"]]["country"]
+                sector = base_data[row["symbol"]]["sector"]
+                sector_country = f"{sector}, {country}"
+
             results[screen].append(
                 {
                     "source": {
-                        "name": f'{row["shortName"].title() if row["shortName"].isupper() else row["shortName"]} ({row["region"]})',
+                        "name": f'{row["shortName"].title() if row["shortName"].isupper() else row["shortName"]}',
+                        "tagline": sector_country,
                         "pinned": False,
-                        "notification_threshold": (5 if 'active' in screen.lower() else 10),
+                        "notification_threshold": (5 if "active" in screen.lower() else 10),
                         "data_source": "yf",
                     },
                     "worst_perf_idx": idx,
