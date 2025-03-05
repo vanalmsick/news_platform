@@ -174,7 +174,7 @@ def active_gainers_loosers():
                     "source": {
                         "name": f'{row["shortName"].title() if row["shortName"].isupper() else row["shortName"]} ({row["region"]})',
                         "pinned": False,
-                        "notification_threshold": 20,
+                        "notification_threshold": (5 if 'active' in screen.lower() else 10),
                         "data_source": "yf",
                     },
                     "worst_perf_idx": idx,
