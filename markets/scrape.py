@@ -111,7 +111,7 @@ def active_gainers_loosers():
         ("Stock Losers (G7)", "percentchange", "asc"),
     ]:
         querystring = {
-            "size": 5,
+            "size": 40,
             "offset": 0,
             "sortType": sortType,
             "sortField": sortField,
@@ -172,6 +172,10 @@ def active_gainers_loosers():
         ]
         top5 = pd.DataFrame(data_clean)
 
+        top5["priceAge"] = (datetime.datetime.now() - pd.to_datetime(top5["regularMarketTime"], unit="s")).dt.seconds
+        top5 = top5[top5["priceAge"] < 60 * 60 * 6]  # exclude quotes where the market closed more than 6 hours ago
+        top5 = top5.iloc[: min(len(top5), 5)]
+
         for idx, row in top5.iterrows():
             if screen not in results:
                 results[screen] = []
@@ -211,7 +215,7 @@ def active_gainers_loosers():
                         "data_source": "yf",
                     },
                     "worst_perf_idx": idx,
-                    "market_closed": "POST" in row["marketState"],
+                    "market_closed": "PRE" in row["marketState"] or "POST" in row["marketState"],
                     "change_today": row["regularMarketChangePercent"],
                     "change_today_abs": abs(row["regularMarketChangePercent"]),
                 }
