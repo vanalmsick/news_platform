@@ -211,7 +211,7 @@ def active_gainers_loosers():
                         "data_source": "yf",
                     },
                     "worst_perf_idx": idx,
-                    "market_closed": False,
+                    "market_closed": "POST" in row["marketState"],
                     "change_today": row["regularMarketChangePercent"],
                     "change_today_abs": abs(row["regularMarketChangePercent"]),
                 }
@@ -241,7 +241,10 @@ def scrape_market_data():
                 source=data_src,
                 price=summary_box["regularMarketPrice"],
                 change_today=(summary_box["regularMarketPrice"] / summary_box["chartPreviousClose"] - 1) * 100,
-                market_closed=False,
+                market_closed=(
+                    datetime.datetime.now() - pd.to_datetime(summary_box["regularMarketTime"], unit="s")
+                ).seconds
+                > 60 * 60,
             )
             obj.save()
             latest_data.append(obj.pk)
