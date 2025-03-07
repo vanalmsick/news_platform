@@ -31,6 +31,14 @@ class DataSource(models.Model):
     ticker = models.CharField(max_length=20)
     notification_threshold = models.DecimalField(default=5.0, decimal_places=2, max_digits=5)
 
+    @property
+    def src_url(self):
+        return (
+            f"https://finance.yahoo.com/quote/{self.ticker}?p={self.ticker}"
+            if self.data_source == "yfin"
+            else f"https://tradingeconomics.com/{self.ticker.lower().replace(' ', '-')}/government-bond-yield"
+        )
+
     def __str__(self):
         """print-out representation of individual model entry"""
         return f"{self.name} ({self.ticker} / {self.group})"

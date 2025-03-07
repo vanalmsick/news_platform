@@ -167,6 +167,7 @@
         <div id="leftSpace" style="text-align: left;">
             <div class="py-1 fs-5 border-bottom">
                 <span><strong class="text-gray-dark ps-3">Markets</strong></span>
+                <span id="lastNewsFetchNote" class="text-secondary small"><i><small><small>(Last update: <script>document.write(dateConvert("{{ lastRefreshed }}", "medium"));</script><noscript>{{ lastRefreshed }}</noscript>)</small></small></i></span>
             </div>
 
             <div class="mb-2 border-bottom">
@@ -207,7 +208,7 @@
                                             <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
                                         </svg>
                                     {% endif %}
-                                    {{ data.source.name }}
+                                    <a href="{{ data.source.src_url }}" target="_blank" referrerpolicy="no-referrer" style="color: inherit;text-decoration: inherit;">{{ data.source.name }}</a>
                                 </div>
                                 <div class="
                             {% if data.market_closed or data.change_today == 0 %}text-muted
@@ -221,6 +222,7 @@
                                 </div>
                             </div>
                             {% if data.source.tagline != None %}<div class="text-body-tertiary small"><i>({{ data.source.tagline }})</i></div>{% endif %}
+
                         </div>
                     {% endfor %}
                 {% endfor %}
