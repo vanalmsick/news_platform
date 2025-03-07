@@ -213,6 +213,7 @@ def active_gainers_loosers():
                         "pinned": False,
                         "notification_threshold": (5 if "active" in screen.lower() else 10),
                         "data_source": "yf",
+                        "src_url": f'https://finance.yahoo.com/quote/{row["symbol"]}?p={row["symbol"]}',
                     },
                     "worst_perf_idx": idx,
                     "market_closed": "PRE" in row["marketState"] or "POST" in row["marketState"],
@@ -291,17 +292,7 @@ def scrape_market_data():
                         + f"{'%' if notification.source.data_source == 'yfin' else 'bps'} "
                         + ("up" if notification.change_today > 0 else "down")
                     ),
-                    "url": (
-                        "https://finance.yahoo.com/quote/"
-                        + notification.source.ticker
-                        + "?p="
-                        + notification.source.ticker
-                        if notification.source.data_source == "yfin"
-                        else (
-                            f"https://tradingeconomics.com/{notification.source.ticker.lower().replace(' ', '-')}"
-                            "/government-bond-yield"
-                        )
-                    ),
+                    "url": notification.source.src_url,
                 }
                 send_group_notification(
                     group_name="all",
