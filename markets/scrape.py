@@ -111,7 +111,7 @@ def active_gainers_loosers():
         ("Stock Losers (G7)", "percentchange", "asc"),
     ]:
         querystring = {
-            "size": 40,
+            "size": 50,
             "offset": 0,
             "sortType": sortType,
             "sortField": sortField,
@@ -174,6 +174,7 @@ def active_gainers_loosers():
 
         top5["priceAge"] = (datetime.datetime.now() - pd.to_datetime(top5["regularMarketTime"], unit="s")).dt.seconds
         top5 = top5[top5["priceAge"] < 60 * 60 * 6]  # exclude quotes where the market closed more than 6 hours ago
+        top5.drop_duplicates(subset=["longName"], inplace=True, keep="first")
         top5 = top5.iloc[: min(len(top5), 5)]
 
         for idx, row in top5.iterrows():
@@ -203,12 +204,19 @@ def active_gainers_loosers():
             else:
                 country = base_data[row["symbol"]]["country"]
                 sector = base_data[row["symbol"]]["sector"]
-                sector_country = f"{sector}, {country}"
+                if sector == "" and sector == "":
+                    sector_country = None
+                elif sector == "":
+                    sector_country = country
+                elif country == "":
+                    sector_country = sector
+                else:
+                    sector_country = f"{sector}, {country}"
 
             results[screen].append(
                 {
                     "source": {
-                        "name": f'{row["shortName"].title() if row["shortName"].isupper() else row["shortName"]}',
+                        "name": f'{row["longName"].title() if row["longName"].isupper() else row["longName"]}',
                         "tagline": sector_country,
                         "pinned": False,
                         "notification_threshold": (5 if "active" in screen.lower() else 10),

@@ -167,7 +167,7 @@
         <div id="leftSpace" style="text-align: left;">
             <div class="py-1 fs-5 border-bottom">
                 <span><strong class="text-gray-dark ps-3">Markets</strong></span>
-                <span id="lastNewsFetchNote" class="text-secondary small"><i><small><small>(Last update: <script>document.write(dateConvert("{{ lastRefreshed }}", "medium"));</script><noscript>{{ lastRefreshed }}</noscript>)</small></small></i></span>
+                <i><small><small><span id="lastMarketsFetchNote" class="text-secondary small">(Last update: <script>document.write(dateConvert("{{ lastRefreshed }}", "medium"));</script><noscript>{{ lastRefreshed }}</noscript>)</span></small></small></i>
             </div>
 
             <div class="mb-2 border-bottom">
@@ -739,8 +739,10 @@
                         element.classList.add("show");
                         setInterval(refreshPageRefreshNotification, 1000 * 1);
                     } else {
-                        let element = document.getElementById("lastNewsFetchNote");
-                        element.innerHTML = '(Last news fetch: ' + dateConvert("{{ lastRefreshed }}", "medium") + ')';
+                        let element1 = document.getElementById("lastNewsFetchNote");
+                        element1.innerHTML = '(Last news fetch: ' + dateConvert("{{ lastRefreshed }}", "medium") + ')';
+                        let element2 = document.getElementById("lastMarketsFetchNote");
+                        element2.innerHTML = '(Last update: ' + dateConvert("{{ lastRefreshed }}", "medium") + ')';
                         console.log('no new articles avaiable');
                     }
                     ;
