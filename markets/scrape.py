@@ -172,6 +172,7 @@ def active_gainers_loosers():
         ]
         top5 = pd.DataFrame(data_clean)
 
+        top5["name"] = top5["longName"].fillna(top5["shortName"])
         top5["priceAge"] = (datetime.datetime.now() - pd.to_datetime(top5["regularMarketTime"], unit="s")).dt.seconds
         top5 = top5[top5["priceAge"] < 60 * 60 * 6]  # exclude quotes where the market closed more than 6 hours ago
         top5.drop_duplicates(subset=["longName"], inplace=True, keep="first")
@@ -213,18 +214,27 @@ def active_gainers_loosers():
                 else:
                     sector_country = f"{sector}, {country}"
 
+            name = str(row["name"]).title() if str(row["name"]).isupper() else str(row["name"])
+            name = (
+                name.replace("Public Limited Company", "Plc.")
+                .replace("Akitengesellschaft", "AG")
+                .replace("Limited", "Ltd.")
+                .replace("Corporation", "Corp.")
+                .replace("Incorporated", "Inc.")
+            )
+
             results[screen].append(
                 {
                     "source": {
-                        "name": f'{row["longName"].title() if row["longName"].isupper() else row["longName"]}',
+                        "name": name,
                         "tagline": sector_country,
                         "pinned": False,
-                        "notification_threshold": (5 if "active" in screen.lower() else 10),
+                        "notification_threshold": (5 if "active" in str(screen).lower() else 10),
                         "data_source": "yf",
                         "src_url": f'https://finance.yahoo.com/quote/{row["symbol"]}?p={row["symbol"]}',
                     },
                     "worst_perf_idx": idx,
-                    "market_closed": "PRE" in row["marketState"] or "POST" in row["marketState"],
+                    "market_closed": "PRE" in str(row["marketState"]) or "POST" in str(row["marketState"]),
                     "change_today": row["regularMarketChangePercent"],
                     "change_today_abs": abs(row["regularMarketChangePercent"]),
                 }
