@@ -39,6 +39,12 @@ def cleanup_webpush_subscriptions(self):
     # Step 3: Delete these entries.
     SubscriptionInfo.objects.filter(id__in=min_ids_to_delete).delete()
 
+    return (
+        "No duplicate webpush subscriptions"
+        if len(min_ids_to_delete) == 0
+        else f"Deleted these {len(min_ids_to_delete)} duplicate webpush subscriptions: {min_ids_to_delete}"
+    )
+
 
 @register.filter(name="split")
 def split(value, key):
