@@ -7,7 +7,7 @@ import urllib.parse
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db.models import Count
+from django.db.models import Count, Min
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.template.defaulttags import register
@@ -20,8 +20,30 @@ from feed_scraper.video_scraper import update_videos
 from markets.scrape import scrape_market_data
 from news_platform.celery import app, is_task_already_executing
 from preferences.models import Page, get_page_lst, url_parm_encode
+from webpush.models import SubscriptionInfo
 
 from .pageAPI import get_articles
+
+
+@app.task(bind=True, time_limit=60 * 10, max_retries=5)  # 10 min time limit
+def cleanup_webpush_subscriptions(self):
+    """Cleanup multiple webpush subscriptions for same device"""
+    # Step 1: Annotate each WebpushSubscriptionInfo with the minimum id for each group of auth and p256dh.
+    duplicates = (
+        SubscriptionInfo.objects.values("auth", "p256dh")
+        .annotate(min_id=Min("id"), count_id=Count("id"))
+        .filter(count_id__gt=1)
+    )
+    # Step 2: Collect the IDs of the entries with the lowest id in each group.
+    min_ids_to_delete = [entry["min_id"] for entry in duplicates]
+    # Step 3: Delete these entries.
+    SubscriptionInfo.objects.filter(id__in=min_ids_to_delete).delete()
+
+    return (
+        "No duplicate webpush subscriptions"
+        if len(min_ids_to_delete) == 0
+        else f"Deleted these {len(min_ids_to_delete)} duplicate webpush subscriptions: {min_ids_to_delete}"
+    )
 
 
 @register.filter(name="split")

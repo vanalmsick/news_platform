@@ -51,6 +51,7 @@ def find_grouped_articles():
     print("Finding article groups...")
     pages_kwargs = Page.objects.all().order_by("-position_index").values_list("url_parameters_json", flat=True)
     model = SentenceTransformer("all-MiniLM-L6-v2")
+    new_article_groups = 0
 
     for page_kwargs in pages_kwargs:
         _, articles, _ = get_articles(grouped_articles=False, force_recache=True, **page_kwargs)
@@ -76,6 +77,7 @@ def find_grouped_articles():
 
         for _, article_pos in grouped_article_groups.items():
             if len(article_pos) < 10:  # ensure not insane large article groups - probably incorrect group then
+                new_article_groups += 1
                 existing_article_groups = [articles_query[i]["article_group"] for i in article_pos]
                 article_ids = [articles_query[i]["id"] for i in article_pos]
                 common_article_group = max([-1] + [x.id for x in existing_article_groups if x is not None])
@@ -178,7 +180,7 @@ def find_grouped_articles():
 
         combined_article.save()
 
-    print(f"Found {len(pages_kwargs)} article groups.")
+    print(f"Found {new_article_groups} article groups.")
 
 
 def update_feeds():

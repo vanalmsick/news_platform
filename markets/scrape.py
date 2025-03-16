@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests  # type: ignore
 from django.conf import settings
 from django.core.cache import cache
-from django.db.models import F, Q, SmallIntegerField
+from django.db.models import F, SmallIntegerField
 from django.db.models.expressions import Func, Window
 from django.db.models.functions import Cast, RowNumber
 from webpush import send_group_notification
@@ -291,43 +291,44 @@ def scrape_market_data():
 
     # Notify user of large daily changes
     notifications_sent = cache.get("market_notifications_sent", {})
-    notifications = latest_data.filter(market_closed=False).filter(
-        (
-            Q(change_today__gte=F("source__notification_threshold"))
-            | Q(change_today__lte=-F("source__notification_threshold"))
-        )
-    )
-    for notification in notifications:
-        if notification.source.pk not in notifications_sent or (
-            datetime.date.today() != notifications_sent[notification.source.pk]
+    for market_data_i in latest_data:
+        source = market_data_i.source
+        id = source.pk
+        past_notifications_i = notifications_sent.get(id, 0)
+        notification_threshold = float(source.notification_threshold)
+        if market_data_i.market_closed:
+            # markets closed - delete this day's notification
+            notifications_sent.pop(id, None)
+            cache.set("market_notifications_sent", notifications_sent, 3600 * 1000)
+        elif (
+            market_data_i.change_today > notification_threshold + (notification_threshold * past_notifications_i * 0.5)
+        ) or (
+            market_data_i.change_today
+            < -(notification_threshold + (notification_threshold * past_notifications_i * 0.5))
         ):
+            # today's market move exceeds notification threshold (in 50% increments re-notify above threshold)
             try:
                 payload = {
                     "head": "Market Alert",
                     "body": (
-                        f"{notification.source.group.name}: {notification.source.name} "
-                        + f" {'{0:+.2f}'.format(notification.change_today)}"
-                        + f"{'%' if notification.source.data_source == 'yfin' else 'bps'} "
-                        + ("up" if notification.change_today > 0 else "down")
+                        f"{source.group.name}: {source.name} "
+                        + f" {'{0:+.2f}'.format(market_data_i.change_today)}"
+                        + f"{'%' if source.data_source == 'yfin' else 'bps'} "
+                        + ("up" if market_data_i.change_today > 0 else "down")
                     ),
-                    "url": notification.source.src_url,
+                    "url": source.src_url,
                 }
                 send_group_notification(
                     group_name="all",
                     payload=payload,
                     ttl=60 * 90,  # keep 90 minutes on server
                 )
-                print(
-                    f"Web Push Notification sent for ({notification.source.pk}) Market"
-                    f" Alert - {notification.source.name}"
-                )
-                notifications_sent[notification.source.pk] = datetime.date.today()
+                print(f"Web Push Notification sent for ({source.pk}) Market Alert - {source.name}")
+                notifications_sent[id] = past_notifications_i + 1
                 cache.set("market_notifications_sent", notifications_sent, 3600 * 1000)
+
             except Exception as e:
-                print(
-                    f"Error sending Web Push Notification for ({notification.source.pk}) Market"
-                    f" Alert - {notification.source.name}: {e}"
-                )
+                print(f"Error sending Web Push Notification for ({source.pk}) Market Alert - {source.name}: {e}")
 
     data_active_gainers_loosers = active_gainers_loosers()
 
