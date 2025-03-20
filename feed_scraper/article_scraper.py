@@ -156,29 +156,30 @@ def find_grouped_articles():
     Article.objects.filter(content_type="group", articlegroup__isnull=True).delete()
 
     # Update not new article group's relevance
-    all_aticle_groups = ArticleGroup.objects.all()
-    for article_group in all_aticle_groups:
+    all_article_groups = ArticleGroup.objects.all()
+    for article_group in all_article_groups:
         articles = Article.objects.filter(article_group__id=article_group.id)
-        combined_article = article_group.combined_article
+        if len(articles) > 0:
+            combined_article = article_group.combined_article
 
-        setattr(
-            combined_article,
-            "publisher_article_position",
-            articles.aggregate(Min("publisher_article_position"))["publisher_article_position__min"],
-        )
-        setattr(
-            combined_article,
-            "min_feed_position",
-            articles.aggregate(Min("min_feed_position"))["min_feed_position__min"],
-        )
-        setattr(
-            combined_article,
-            "min_article_relevance",
-            articles.aggregate(Min("min_article_relevance"))["min_article_relevance__min"],
-        )
-        setattr(combined_article, "max_importance", articles.aggregate(Max("max_importance"))["max_importance__max"])
+            setattr(
+                combined_article,
+                "publisher_article_position",
+                articles.aggregate(Min("publisher_article_position"))["publisher_article_position__min"],
+            )
+            setattr(
+                combined_article,
+                "min_feed_position",
+                articles.aggregate(Min("min_feed_position"))["min_feed_position__min"],
+            )
+            setattr(
+                combined_article,
+                "min_article_relevance",
+                articles.aggregate(Min("min_article_relevance"))["min_article_relevance__min"],
+            )
+            setattr(combined_article, "max_importance", articles.aggregate(Max("max_importance"))["max_importance__max"])
 
-        combined_article.save()
+            combined_article.save()
 
     print(f"Found {new_article_groups} article groups.")
 
