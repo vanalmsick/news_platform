@@ -159,9 +159,9 @@ def find_grouped_articles():
     all_article_groups = ArticleGroup.objects.all()
     for article_group in all_article_groups:
         articles = Article.objects.filter(article_group__id=article_group.id)
-        if len(articles) > 0:
-            combined_article = article_group.combined_article
+        combined_article = article_group.combined_article
 
+        if len(articles) > 0 and combined_article is not None:
             setattr(
                 combined_article,
                 "publisher_article_position",
