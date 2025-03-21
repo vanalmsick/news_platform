@@ -177,6 +177,8 @@ def active_gainers_loosers():
         top5 = top5[top5["priceAge"] < 60 * 60 * 6]  # exclude quotes where the market closed more than 6 hours ago
         top5.drop_duplicates(subset=["longName"], inplace=True, keep="first")
         top5 = top5.iloc[: min(len(top5), 5)]
+        top5.reset_index(drop=True, inplace=True)
+        top5.index += 1
 
         for idx, row in top5.iterrows():
             if screen not in results:
