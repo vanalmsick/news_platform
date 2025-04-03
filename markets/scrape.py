@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests  # type: ignore
 from django.conf import settings
 from django.core.cache import cache
-from django.db.models import F, SmallIntegerField
+from django.db.models import F, BigIntegerField
 from django.db.models.expressions import Func, Window
 from django.db.models.functions import Cast, RowNumber
 from webpush import send_group_notification
@@ -280,7 +280,7 @@ def scrape_market_data():
 
     latest_data = (
         DataEntry.objects.filter(pk__in=latest_data)
-        .annotate(change_today_int=Cast(F("change_today") * 1000, SmallIntegerField()))
+        .annotate(change_today_int=Cast(F("change_today") * 1000, BigIntegerField()))
         .annotate(change_today_abs=ABS(F("change_today")))
         .annotate(
             worst_perf_idx=Window(
