@@ -294,6 +294,7 @@ def scrape_market_data():
 
     # Notify user of large daily changes
     notifications_sent = cache.get("market_notifications_sent", {})
+    notifications_display = cache.get("notifications_display", [])
     for market_data_i in latest_data:
         source = market_data_i.source
         id = source.pk
@@ -311,14 +312,15 @@ def scrape_market_data():
         ):
             # today's market move exceeds notification threshold (in 50% increments re-notify above threshold)
             try:
+                msg_group = source.group.name
+                msg_title = (f"{source.name} {'{0:+.2f}'.format(market_data_i.change_today)}"
+                             + f"{'%' if source.data_source == 'yfin' else 'bps'} "
+                             + ("up" if market_data_i.change_today > 0 else "down")
+                )
+                cache.set("notifications_display", notifications_display + [(settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()).isoformat(), msg_title, f"Market Alert - {msg_group}", source.src_url)], 3600 * 1000)
                 payload = {
                     "head": "Market Alert",
-                    "body": (
-                        f"{source.group.name}: {source.name} "
-                        + f" {'{0:+.2f}'.format(market_data_i.change_today)}"
-                        + f"{'%' if source.data_source == 'yfin' else 'bps'} "
-                        + ("up" if market_data_i.change_today > 0 else "down")
-                    ),
+                    "body": f"{msg_group}: {msg_title}",
                     "url": source.src_url,
                 }
                 send_group_notification(

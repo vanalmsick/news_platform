@@ -171,8 +171,9 @@ class RestLastRefeshAPIView(APIView):
         return Response(
             dict(
                 lastRefreshed=cache.get("lastRefreshed"),
-                currentlyRefreshing=cache.get("currentlyRefreshing"),
-                videoRefreshCycleCount=cache.get("videoRefreshCycleCount"),
+                currentlyRefreshing=cache.get("currentlyRefreshing", False),
+                videoRefreshCycleCount=cache.get("videoRefreshCycleCount", 8),
+                notifications_display=cache.get("notifications_display", []),
             )
         )
 

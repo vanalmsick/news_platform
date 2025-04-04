@@ -699,11 +699,44 @@
         </svg>
     </button>
 
+
+    <!-- Modal HTML -->
+    <div id="newsModal" class="modal fade" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" style="color: darkred">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bell-fill" viewBox="0 0 16 16" style="margin: 0px 5px 2px 0px; color: darkred">
+                          <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2m.995-14.901a1 1 0 1 0-1.99 0A5 5 0 0 0 3 6c0 1.098-.5 6-2 7h14c-1.5-1-2-5.902-2-7 0-2.42-1.72-4.44-4.005-4.901"/>
+                        </svg>
+                        Breaking News</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-hover small articlegroupclick" style="font-family: Georgia, serif;">
+                        <tbody id="elementModal" >
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-danger" onclick="const now = new Date(); now.setDate(now.getDate() + 30); sessionStorage.setItem('lastNotification', now.toISOString());" data-bs-dismiss="modal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-ban" viewBox="0 0 16 16" style="margin: 0px 5px 2px 0px;">
+                          <path d="M15 8a6.97 6.97 0 0 0-1.71-4.584l-9.874 9.875A7 7 0 0 0 15 8M2.71 12.584l9.874-9.875a7 7 0 0 0-9.874 9.874ZM16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0"/>
+                        </svg>
+                        Turn-off notifications</button>
+                    <button id="newsModalClose" onclick="sawNotifications();" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     </body>
     <script>
 
+        var notificationStorage = [];
         var reloadSeconds = 10;
-        var lastPageRefresh = Math.floor(Date.now() / 1000)
+        var lastPageRefresh = Math.floor(Date.now() / 1000);
         applyUserLightDarkTheme();
 
 
@@ -725,12 +758,35 @@
         document.addEventListener('visibilitychange', onVisible);
         //document.addEventListener('focus', onVisible);
 
+        function sawNotifications() {
+            const lastNotification = document.getElementById('newsModalClose').getAttribute('lastNotification');
+            document.getElementById('elementModal').innerHTML = '';
+            localStorage.setItem("lastNotification", lastNotification);
+        }
+
+        function checkNotifications(notifications) {
+            let lastNotification = localStorage.getItem("lastNotification");
+            for (let i = 0; i < notifications.length; i++) {
+                console.log(new Date(notifications[i][0]), new Date(lastNotification), new Date(notifications[i][0]) > new Date(lastNotification))
+                if (window.innerWidth > 768  && (lastNotification === 'null' || new Date(notifications[i][0]) > new Date(lastNotification))) {
+                    document.getElementById('elementModal').innerHTML += '<tr class="context-card border-top border-bottom" article_id="' + notifications[i][3] + '" article_target="url"><td>' + notifications[i][1] + '<br><span class="text-muted">' + notifications[i][2] + '</span></td></tr>';
+                    document.getElementById('newsModalClose').setAttribute("lastNotification", notifications[i][0]);
+                    var myModal = new bootstrap.Modal(document.getElementById("newsModal"));
+                    myModal.show();
+                } else {
+                    console.log('Not a new notification', notifications[i])
+                }
+            }
+        }
+
 
         // check every X seconds if new articles available
         function checkNewNews() {
             restRequest('/api/refresh/')
-                .then(response => response.lastRefreshed)
-                .then(function (lastRefreshed) {
+                .then(response => response)
+                .then(function (response) {
+                    const lastRefreshed = response.lastRefreshed;
+                    const notifications = response.notifications_display;
                     // console.log(((lastRefreshed === null) && ('{{ lastRefreshed }}' === 'None')), ('{{ lastRefreshed }}' === lastRefreshed));
                     if (false === (((lastRefreshed === null) && ('{{ lastRefreshed }}' === 'None')) || ('{{ lastRefreshed }}' === lastRefreshed))) {
                         console.log('new articles avaiable');
@@ -745,7 +801,7 @@
                         element2.innerHTML = '(Last update: ' + dateConvert("{{ lastRefreshed }}", "medium") + ')';
                         console.log('no new articles avaiable');
                     }
-                    ;
+                    checkNotifications(notifications);
                 });
             lastPageRefresh = Math.floor(Date.now() / 1000);
         }
@@ -796,6 +852,9 @@
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
         }
+
+
+        checkNewNews();
 
 
     </script>
