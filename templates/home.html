@@ -761,21 +761,20 @@
         function sawNotifications() {
             const lastNotification = document.getElementById('newsModalClose').getAttribute('lastNotification');
             document.getElementById('elementModal').innerHTML = '';
-            sessionStorage.setItem("lastNotification", lastNotification);
+            localStorage.setItem("lastNotification", lastNotification);
         }
 
         function checkNotifications(notifications) {
-            let lastNotification = sessionStorage.getItem("lastNotification");
+            let lastNotification = localStorage.getItem("lastNotification");
             for (let i = 0; i < notifications.length; i++) {
                 console.log(new Date(notifications[i][0]), new Date(lastNotification), new Date(notifications[i][0]) > new Date(lastNotification))
                 if (window.innerWidth > 768  && (lastNotification === 'null' || new Date(notifications[i][0]) > new Date(lastNotification))) {
-                    console.log(notifications[i]);
                     document.getElementById('elementModal').innerHTML += '<tr class="context-card border-top border-bottom" article_id="' + notifications[i][3] + '" article_target="url"><td>' + notifications[i][1] + '<br><span class="text-muted">' + notifications[i][2] + '</span></td></tr>';
                     document.getElementById('newsModalClose').setAttribute("lastNotification", notifications[i][0]);
                     var myModal = new bootstrap.Modal(document.getElementById("newsModal"));
                     myModal.show();
                 } else {
-                    console.log('Not a new notification')
+                    console.log('Not a new notification', notifications[i])
                 }
             }
         }
