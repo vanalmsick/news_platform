@@ -317,6 +317,7 @@ def scrape_market_data():
                              + f"{'%' if source.data_source == 'yfin' else 'bps'} "
                              + ("up" if market_data_i.change_today > 0 else "down")
                 )
+                cache.set("notifications_display", notifications_display + [(settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()).isoformat(), msg_title, f"Market Alert - {msg_group}", source.src_url)], 3600 * 1000)
                 payload = {
                     "head": "Market Alert",
                     "body": f"{msg_group}: {msg_title}",
@@ -330,11 +331,6 @@ def scrape_market_data():
                 print(f"Web Push Notification sent for ({source.pk}) Market Alert - {source.name}")
                 notifications_sent[id] = past_notifications_i + 1
                 cache.set("market_notifications_sent", notifications_sent, 3600 * 1000)
-                cache.set(
-                    "notifications_display",
-                    notifications_display + [(settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()).isoformat(), msg_title, msg_group, source.src_url)],
-                    3600 * 1000,
-                )
 
             except Exception as e:
                 print(f"Error sending Web Push Notification for ({source.pk}) Market Alert - {source.name}: {e}")

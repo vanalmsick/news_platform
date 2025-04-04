@@ -666,6 +666,7 @@ def fetch_feed(feed, force_refetch):
             < 72  # published less than 72h/3d ago
         ):
             try:
+                cache.set("notifications_display", notifications_display + [(settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()).isoformat(), article_obj.title, article_obj.publisher.name, (f"/view/{article_obj.pk}/" if article_obj.has_full_text else article_obj.link))], 3600 * 1000)
                 send_group_notification(
                     group_name="all",
                     payload={
@@ -687,11 +688,6 @@ def fetch_feed(feed, force_refetch):
                 cache.set(
                     "notifications_sent",
                     notifications_sent + [article_obj.pk],
-                    3600 * 1000,
-                )
-                cache.set(
-                    "notifications_display",
-                    notifications_display + [(settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()).isoformat(), article_obj.title, article_obj.publisher.name, (f"/view/{article_obj.pk}/" if article_obj.has_full_text else article_obj.link))],
                     3600 * 1000,
                 )
                 print(
