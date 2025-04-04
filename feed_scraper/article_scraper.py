@@ -644,6 +644,7 @@ def fetch_feed(feed, force_refetch):
         # check if important news for push notification
         now = datetime.datetime.now()
         notifications_sent = cache.get("notifications_sent", [])
+        notifications_display = cache.get("notifications_display", [])
         if (
             article_obj.pk not in notifications_sent
             and (article_obj.categories is None or "no push" not in str(article_obj.categories).lower())
@@ -686,6 +687,11 @@ def fetch_feed(feed, force_refetch):
                 cache.set(
                     "notifications_sent",
                     notifications_sent + [article_obj.pk],
+                    3600 * 1000,
+                )
+                cache.set(
+                    "notifications_display",
+                    notifications_display + [(settings.TIME_ZONE_OBJ.localize(datetime.datetime.now()).isoformat(), article_obj.title, article_obj.publisher.name, (f"/view/{article_obj.pk}/" if article_obj.has_full_text else article_obj.link))],
                     3600 * 1000,
                 )
                 print(

@@ -190,6 +190,8 @@
                 const method = card.getAttribute('article_target');
                 if (method == 'view') {
                     window.location = '/view/' + article + '/';
+                } else if (method == 'url') {
+                    window.open(article);
                 } else {
                     window.open('/redirect/' + article + '/');
                 }
