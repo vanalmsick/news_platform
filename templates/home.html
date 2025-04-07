@@ -734,7 +734,7 @@
     </body>
     <script>
 
-        var notificationStorage = [];
+        var notificationCounter = 0;
         var notificationModal = false;
         var reloadSeconds = 10;
         var lastPageRefresh = Math.floor(Date.now() / 1000);
@@ -778,6 +778,8 @@
             document.getElementById('elementModal').innerHTML = '';
             localStorage.setItem("lastNotification", lastNotification);
             hideModal("newsModal");
+            document.title = "{{ platform_name }}";
+            notificationCounter = 0;
         }
 
         function checkNotifications(notifications) {
@@ -790,6 +792,8 @@
                 if (window.innerWidth > 768  && !document.getElementById(notifications[i][0]) && (lastNotification === 'null' || notificationDate > lastNotificationDate) && (notificationAge < 3)) {
                     document.getElementById('elementModal').innerHTML += '<tr class="context-card border-top border-bottom" id="' + notifications[i][0] + '" article_id="' + notifications[i][3] + '" article_target="url"><td>' + notifications[i][1] + '<br><span class="text-muted">' + notifications[i][2] + '</span></td></tr>';
                     document.getElementById('newsModalClose').setAttribute("lastNotification", notifications[i][0]);
+                    notificationCounter += 1;
+                    document.title = `*** ${notificationCounter} Breaking News ***  {{ platform_name }}`;
                     if (!notificationModal) {
                         showModal("newsModal");
                     }
