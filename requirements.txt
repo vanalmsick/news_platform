@@ -35,3 +35,4 @@ googlenewsdecoder
 curl_cffi
 scikit-learn
 sentence-transformers
+accelerate
