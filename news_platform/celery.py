@@ -33,7 +33,7 @@ app.conf.beat_schedule = {
     },
     "webpush-cleanup": {
         "task": "news_platform.pages.pageHome.cleanup_webpush_subscriptions",
-        "schedule": crontab(hour="4-22/3"),
+        "schedule": crontab(minute="58,28", hour="4-22"),
         "args": (),
     },
 }
