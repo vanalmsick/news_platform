@@ -175,6 +175,7 @@ def active_gainers_loosers():
         top5["name"] = top5["longName"].fillna(top5["shortName"])
         top5["priceAge"] = (datetime.datetime.now() - pd.to_datetime(top5["regularMarketTime"], unit="s")).dt.total_seconds()
         top5 = top5[top5["priceAge"] < 60 * 60 * 6]  # exclude quotes where the market closed more than 6 hours ago
+        top5 = top5[~((top5["bid"] == 0.0) & (top5["ask"] == 0.0))]  # remove stocks without active trading - i.e. inflated prices
         top5.drop_duplicates(subset=["longName"], inplace=True, keep="first")
         top5 = top5.iloc[: min(len(top5), 5)]
         top5.reset_index(drop=True, inplace=True)
