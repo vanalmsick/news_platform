@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Data scraping for Market Data i.e. Stock/FX/Comm prices"""
 
-import datetime, pytz
+import os, datetime, pytz
 import traceback
 from io import StringIO
 
@@ -96,19 +96,11 @@ def active_gainers_loosers():
 
     url = "https://query1.finance.yahoo.com/v1/finance/screener"
 
-    querystring = {
-        "formatted": "true",
-        "useRecordsResponse": "true",
-        "lang": "en-US",
-        "region": "US",
-        "crumb": request_crumb.text,
-    }
-
     results = {}
     for screen, sortField, sortType in [
-        ("Most Active Stocks (G7)", "dayvolume", "desc"),
-        ("Stock Gainers (G7)", "percentchange", "desc"),
-        ("Stock Losers (G7)", "percentchange", "asc"),
+        ("Most Active Stocks (G7 Listed)", "dayvolume", "desc"),
+        ("Stock Gainers (G7 Listed)", "percentchange", "desc"),
+        ("Stock Losers (G7 Listed)", "percentchange", "asc"),
     ]:
         querystring = {
             "size": 50,
@@ -175,7 +167,8 @@ def active_gainers_loosers():
         top5["name"] = top5["longName"].fillna(top5["shortName"])
         top5["priceAge"] = (datetime.datetime.now() - pd.to_datetime(top5["regularMarketTime"], unit="s")).dt.total_seconds()
         top5 = top5[top5["priceAge"] < 60 * 60 * 6]  # exclude quotes where the market closed more than 6 hours ago
-        top5 = top5[~((top5["bid"] == 0.0) & (top5["ask"] == 0.0))]  # remove stocks without active trading - i.e. inflated prices
+        exclude_tickers = os.getenv("EXCLUDE_TICKERS", "").upper().split(",")
+        top5 = top5[~(top5["symbol"].isin(exclude_tickers))]  # remove DQ stocks
         top5.drop_duplicates(subset=["longName"], inplace=True, keep="first")
         top5 = top5.iloc[: min(len(top5), 5)]
         top5.reset_index(drop=True, inplace=True)
@@ -220,7 +213,7 @@ def active_gainers_loosers():
             name = str(row["name"]).title() if str(row["name"]).isupper() else str(row["name"])
             name = (
                 name.replace("Public Limited Company", "Plc.")
-                .replace("Akitengesellschaft", "AG")
+                .replace("Aktiengesellschaft", "AG")
                 .replace("Limited", "Ltd.")
                 .replace("Corporation", "Corp.")
                 .replace("Incorporated", "Inc.")
