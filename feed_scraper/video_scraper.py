@@ -47,7 +47,11 @@ def update_videos():
 
     added_videos = 0
     for feed in feeds:
-        added_videos += fetch_feed(feed, force_refetch)
+        try:
+            added_videos += fetch_feed(feed, force_refetch)
+        except Exception as e:
+            print(f"Error fetching videos for feed '{feed}': {e}")
+            continue
 
     end_time = time.time()
     print(f"Refreshed videos and added {added_videos} videos in" f" {int(end_time - start_time)} seconds")
