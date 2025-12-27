@@ -41,6 +41,7 @@ HOSTS = os.environ.get("HOSTS", "http://localhost,http://127.0.0.1/").split(",")
 CSRF_TRUSTED_ORIGINS = HOSTS
 ALLOWED_HOSTS = [urlparse(url).netloc for url in HOSTS]
 CORS_ALLOWED_ORIGINS = HOSTS
+X_FRAME_OPTIONS = "ALLOW-FROM " + MAIN_HOST
 
 if (sentry_sdk_url := os.environ.get("SENTRY_URL", None)) is not None:
     sentry_sdk.init(

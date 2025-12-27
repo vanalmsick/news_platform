@@ -17,6 +17,7 @@ Including another URLconf
 
 from django.contrib import admin
 from django.contrib.auth.views import LogoutView
+from django.views.generic import TemplateView
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
@@ -59,6 +60,7 @@ urlpatterns = [
     path("view/<int:article>/", articleView, name="view_article"),
     path("redirect/<int:article>/", RedirectView, name="redirect_article"),
     path("img-error/<int:article>/", ImageErrorView, name="image_error"),
+    path("youtube-proxy/", TemplateView.as_view(template_name="youtube-proxy.html"), name="youtube_proxy"),
     path("", homeView, name="home"),
     path("auth/", include("djoser.urls")),
     path("auth/", include("djoser.urls.jwt")),
