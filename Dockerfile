@@ -104,9 +104,26 @@ RUN apt-get update \
 COPY --from=builder /opt/venv /opt/venv
 
 # Add non-root user "app_user"
+#
+# /news_platform/data is deliberately created here, even though it is empty:
+# the directory is untracked in git and excluded by .dockerignore, so it never
+# arrives via COPY. If the mount point does not exist in the image, Docker
+# creates it as root:root when the VOLUME is materialised, and the non-root
+# process cannot write to it. Pre-creating it means a fresh named/anonymous
+# volume inherits app_user ownership from the image instead.
+# The db_migrations subtree is created too - Django writes migration files there
+# on first boot.
 RUN useradd -U -m -d /home/app_user app_user \
     && install -d -m 0755 -o app_user -g app_user /news_platform \
-    && install -d -m 0755 -o app_user -g app_user /news_platform/staticfiles
+    && install -d -m 0755 -o app_user -g app_user /news_platform/staticfiles \
+    && install -d -m 0755 -o app_user -g app_user /news_platform/static/splashscreens \
+    && install -d -m 0755 -o app_user -g app_user /news_platform/data \
+    && install -d -m 0755 -o app_user -g app_user /news_platform/data/.cache \
+    && for app in articles feeds preferences markets django_celery_beat webpush \
+                  sessions auth authtoken admin contenttypes; do \
+           install -d -m 0755 -o app_user -g app_user \
+               "/news_platform/data/db_migrations/$app"; \
+       done
 
 WORKDIR /news_platform
 USER app_user:app_user
