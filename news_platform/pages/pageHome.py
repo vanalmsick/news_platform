@@ -140,8 +140,7 @@ def refresh_feeds(self):
         print(traceback.format_exc())
         raise self.retry(countdown=30, exc=e)
 
-    finally:
-        return response
+    return response
 
 
 def homeView(request, article=None):
