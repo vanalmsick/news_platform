@@ -113,17 +113,21 @@ COPY --from=builder /opt/venv /opt/venv
 # volume inherits app_user ownership from the image instead.
 # The db_migrations subtree is created too - Django writes migration files there
 # on first boot.
+#
+# NOTE: `install -d -o/-g` applies the ownership only to the *final* path
+# component - any intermediate parent it has to create is left owned by root.
+# So the tree is built with mkdir -p and ownership is applied once, recursively,
+# afterwards. All of these directories are empty, so the extra layer is tiny.
 RUN useradd -U -m -d /home/app_user app_user \
-    && install -d -m 0755 -o app_user -g app_user /news_platform \
-    && install -d -m 0755 -o app_user -g app_user /news_platform/staticfiles \
-    && install -d -m 0755 -o app_user -g app_user /news_platform/static/splashscreens \
-    && install -d -m 0755 -o app_user -g app_user /news_platform/data \
-    && install -d -m 0755 -o app_user -g app_user /news_platform/data/.cache \
+    && mkdir -p /news_platform/staticfiles \
+                /news_platform/static/splashscreens \
+                /news_platform/data/.cache \
     && for app in articles feeds preferences markets django_celery_beat webpush \
                   sessions auth authtoken admin contenttypes; do \
-           install -d -m 0755 -o app_user -g app_user \
-               "/news_platform/data/db_migrations/$app"; \
-       done
+           mkdir -p "/news_platform/data/db_migrations/$app"; \
+       done \
+    && chown -R app_user:app_user /news_platform \
+    && chmod -R 0755 /news_platform
 
 WORKDIR /news_platform
 USER app_user:app_user
