@@ -1,0 +1,89 @@
+version: 2
+
+updates:
+  # ── Backend: pip ───────────────────────────────────────────────────────────
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "13:00"
+      timezone: "Europe/London"
+    target-branch: "dev"
+    cooldown:
+      default-days: 14
+      semver-patch-days: 14
+      semver-minor-days: 14
+      semver-major-days: 21
+    # Group all updates into a single PR per SemVer level so that inter-package
+    # compatibility is maintained (e.g. fastapi + pydantic stay in sync)
+    groups:
+      pip-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+      pip-major:
+        update-types:
+          - "major"
+    commit-message:
+      prefix: "dependabot chore "
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "backend"
+    open-pull-requests-limit: 1
+
+  # ── Docker base images ─────────────────────────────────────────────────────
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "13:00"
+      timezone: "Europe/London"
+    target-branch: "dev"
+    # Docker cooldown supports default-days only (no per-semver-level settings)
+    cooldown:
+      default-days: 14
+    groups:
+      docker-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+      docker-major:
+        update-types:
+          - "major"
+    commit-message:
+      prefix: "dependabot chore "
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+    open-pull-requests-limit: 1
+
+  # ── GitHub Actions ─────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "13:00"
+      timezone: "Europe/London"
+    target-branch: "dev"
+    cooldown:
+      default-days: 14
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+      actions-major:
+        update-types:
+          - "major"
+    commit-message:
+      prefix: "dependabot chore "
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    open-pull-requests-limit: 1
