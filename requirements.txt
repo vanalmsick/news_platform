@@ -18,6 +18,8 @@ django-import-export>=4.0.0
 langid
 python-dotenv
 supervisor
+gunicorn
+whitenoise
 celery
 flower
 pillow
@@ -30,7 +32,9 @@ sentry-sdk[celery]
 psycopg2-binary
 drf-spectacular
 django-unfold
-mkdocs-render-swagger-plugin
+# mkdocs-render-swagger-plugin lives in requirements-dev.txt - it is only used to
+# build the docs site (docs/mkdocs.yml, via the prod-docs GitHub workflow) and
+# pulls mkdocs + mkdocs-material (~90MB) into the runtime image for nothing.
 googlenewsdecoder
 curl_cffi
 scikit-learn

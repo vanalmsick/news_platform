@@ -17,10 +17,17 @@ from urllib.parse import urlparse
 
 import pytz  # type: ignore
 import sentry_sdk
+from dotenv import load_dotenv
 from sentry_sdk.integrations.celery import CeleryIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# data/.env used to be loaded only by manage.py's __main__ block, so it was
+# invisible to the celery processes and to any WSGI server. Loading it here
+# means every process (gunicorn, celery worker, beat, flower) sees the same
+# configuration. Real environment variables still take precedence.
+load_dotenv(BASE_DIR / "data/.env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -30,8 +37,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-ut^e0pt(8g)wzhok&0hjitv#)c^pcq=#0jj9nx0vx%w_xslr(3")
 
 # SECURITY WARNING: don't run with debug turned on in production!
+# NOTE: with DEBUG on, Django appends every executed SQL query to
+# connection.queries for the lifetime of the process. In a long-running
+# container that is an unbounded memory leak, so the Docker image sets
+# DEBUG=false by default.
 DEBUG = os.environ.get("DEBUG", "true").lower() == "true"
-DEBUG = True
 TESTING = os.environ.get("TESTING", "false").lower() == "true"
 CELERY_TASK_ALWAYS_EAGER = False  # true to run tasks synchronously for testing and development
 print(f'Debug modus is turned {"on" if DEBUG else "off"}')
@@ -115,6 +125,9 @@ SIMPLE_JWT = {
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Serves /static/ under gunicorn. Django's own static serving only works
+    # with `runserver` + DEBUG=True, both of which the container no longer uses.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -297,6 +310,13 @@ STATIC_URL = "/static/"
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
+
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+
+# Resolve static files through the normal finders so no `collectstatic` step is
+# needed at build or start time.
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_AUTOREFRESH = DEBUG
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
