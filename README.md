@@ -42,12 +42,21 @@ _(Make sure Docker is installed: [go to docker.com](https://www.docker.com/get-s
 **Minimal Docker Run Command (CMD):**
 
 ```
+# The container runs as the non-root user "app_user" (UID/GID 1000) and Docker
+# does not change the ownership of host directories, so prepare the data dir once:
+mkdir -p /your/local/data/dir/news_platform
+sudo chown -R 1000:1000 /your/local/data/dir/news_platform
+
 docker run \
     -p 80:80 \
     -v /your/local/data/dir/news_platform:/news_platform/data \
     --name my_news_platform \
     vanalmsick/news_platform
 ```
+
+> If the host directory is not writable by UID 1000 the container aborts on start with
+> `PermissionError: [Errno 13] Permission denied: 'data/__init__.py'`.
+> Using a named docker volume instead of a bind mount requires no such step.
 
 **All out [docker_compose.yml](/docker_compose.yml.example) setup:**  
 _docker_compose.yml:_

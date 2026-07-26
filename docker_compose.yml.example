@@ -27,8 +27,15 @@ services:
       POSTGRESQL_PASSWORD: postgres  # Optional if using PostgreSQL Database: user password
       # FULL_TEXT_URL: 'http://fivefilters:80/full-text-rss/'
       # FEED_CREATOR_URL: 'http://fivefilters:80/feed-creator/'
-      # DEBUG: false
+      # DEBUG: false   # default in the image. Turning this on makes Django keep
+      #                # every SQL query in memory - do not enable long-term.
       # OPENAI_API_KEY: '<YOUR_OPEN_AI_API_KEY>'
+      # --- memory tuning (all optional, defaults shown) ---------------------
+      # GUNICORN_WORKERS: 2      # web worker processes; 1 is fine for a home instance
+      # GUNICORN_THREADS: 4      # threads per web worker
+      # CELERY_CONCURRENCY: 2    # background worker processes; 1 roughly halves peak RAM
+      # REDIS_MAXMEMORY: 256mb   # hard cap on the built-in redis
+      # ENABLE_FLOWER: 'false'   # skip the Flower monitoring UI (~100-150MB)
     deploy:
       resources:
         limits:

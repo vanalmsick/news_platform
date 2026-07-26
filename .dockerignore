@@ -7,6 +7,23 @@
 docs/
 .github/
 
+# Build-context junk that would otherwise end up in the image layer
+.git/
+.gitignore
+.dockerignore
+.idea/
+.vscode/
+**/.DS_Store
+Dockerfile
+docker_compose.yml.example
+*.rdb
+dump.rdb
+README.md
+LICENSE
+.pre-commit-config.yaml
+requirements-dev.txt
+staticfiles/
+
 
 ### Python template
 # Byte-compiled / optimized / DLL files
