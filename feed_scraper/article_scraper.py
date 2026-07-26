@@ -20,8 +20,6 @@ from django.db.models import Count, F, Q
 from openai import OpenAI
 from webpush import send_group_notification
 from itertools import groupby
-from sentence_transformers import SentenceTransformer
-from sklearn.cluster import AgglomerativeClustering
 from django.db.models import Max, Min
 
 from articles.models import Article, ArticleGroup, FeedPosition
@@ -48,6 +46,16 @@ def postpone(function):
 
 def find_grouped_articles():
     """Finds articles about the same topic and adds ArticleGroup objects"""
+    # sentence_transformers pulls in torch (several hundred MB of RSS and a slow
+    # import). Importing it at module scope made it a hard dependency of the
+    # *web* process too: news_platform.urls -> pages.pageHome -> this module.
+    # Django's system checks import the root URLconf, so `manage.py check` - and
+    # therefore supervisord's `check && exec gunicorn` - blocked on the torch
+    # import before gunicorn ever bound :80. Keep it local to the one function
+    # that needs it so only the celery worker actually pays for it.
+    from sentence_transformers import SentenceTransformer
+    from sklearn.cluster import AgglomerativeClustering
+
     print("Finding article groups...")
     pages_kwargs = Page.objects.all().order_by("-position_index").values_list("url_parameters_json", flat=True)
     model = SentenceTransformer("all-MiniLM-L6-v2")
