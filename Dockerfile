@@ -29,9 +29,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --upgrade pip setuptools wheel \
     && pip install -r /tmp/requirements.txt
 
-# Strip build artefacts that are dead weight at runtime
+# Strip build artefacts that are dead weight at runtime.
+# NOTE: do NOT blanket-delete directories named test/tests - several packages
+# ship importable public APIs under those names (e.g. django.test, which DRF
+# and simplejwt import at settings-load time).
 RUN find /opt/venv -depth \( -name '__pycache__' -o -name '*.pyc' -o -name '*.pyo' \) -exec rm -rf {} + ; \
-    find /opt/venv -depth -type d \( -name 'tests' -o -name 'test' \) -prune -exec rm -rf {} + ; \
     find /opt/venv -name '*.so' -exec strip --strip-unneeded {} + 2>/dev/null ; \
     rm -rf /opt/venv/share/man /opt/venv/share/doc ; \
     true
