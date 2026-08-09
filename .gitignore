@@ -200,3 +200,24 @@ fabric.properties
 
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
+
+
+### News Platform - generated at runtime, never committed
+
+# PWA splash screens. These are rendered on first boot by the manage.py
+# bootstrap (see the Dockerfile), one per device resolution, so they are build
+# output rather than source. Scoped to *.png on purpose - the package marker
+# static/splashscreens/__init__.py is tracked and must stay that way.
+static/splashscreens/*.png
+
+# Redis snapshot. Supervisord starts redis with --save "" --appendonly no, so
+# this only ever appears from a manual SAVE/BGSAVE or a redis started by hand,
+# and none of the data in it is worth committing.
+dump.rdb
+*.rdb
+
+# collectstatic output
+staticfiles/
+
+# macOS Finder metadata (matches at any depth - the pattern has no slash)
+.DS_Store

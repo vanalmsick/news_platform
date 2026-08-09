@@ -5,7 +5,6 @@ import datetime
 import os
 import time
 import urllib
-import requests
 import feedparser
 import scrapetube
 from django.conf import settings
@@ -14,6 +13,7 @@ from articles.models import Article, FeedPosition
 from feeds.models import Feed
 
 from .article_scraper import calcualte_relevance, delete_feed_positions
+from .http_utils import fetch_json_limited
 
 
 def __extract_number_from_datestr(full_str, identifier):
@@ -61,6 +61,10 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
     """Fetcch/update/scrape all fideos for a specific source feed"""
     added_vids = 0
 
+    print("Fetching videos does currently not work")
+
+    return 0
+
     if feed.feed_type == "y-channel":
         videos = scrapetube.get_channel(
             channel_url=feed.url,
@@ -86,13 +90,15 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
 
     for i, video in enumerate(videos):
         if i == 0:
-            matches = Article.objects.filter(
+            # .exists() short-circuits in the database instead of loading every
+            # matching video row into memory just to test for emptiness.
+            has_match = Article.objects.filter(
                 hash=f"{src}_{video.get('videoId', video.get('id'))}", feedposition__position=1
-            )
+            ).exists()
             if (
                 feed.feed_type == "y-channel"
                 and feed.feed_ordering != "r"
-                and len(matches) > 0
+                and has_match
                 and force_refetch is False
             ):
                 print(
@@ -210,25 +216,27 @@ def fetch_feed(feed, force_refetch, max_per_feed=200):
                     full_text_request_url = (
                         f"{settings.FULL_TEXT_URL}extract.php?url={urllib.parse.quote(article_kwargs['link'], safe='')}"
                     )
-                    full_text_response = requests.get(full_text_request_url, timeout=5)
+                    full_text_response = fetch_json_limited(full_text_request_url, timeout=(3.05, 5))
                     if full_text_response.status_code == 200:
                         full_text_json = full_text_response.json()
                         article_kwargs["image_url"] = full_text_json.get("og_image")
+                        del full_text_json
+                    del full_text_response
                 except Exception as e:
                     print(f'Error fetching full-text image for video "{article_kwargs["title"]}": {e}')
 
         article_kwargs["has_full_text"] = True
         article_kwargs["has_extract"] = False
 
-        search_article = Article.objects.filter(hash=article_kwargs["hash"])
+        existing_article = Article.objects.filter(hash=article_kwargs["hash"]).first()
 
-        if len(search_article) == 0:
+        if existing_article is None:
             article_obj = Article(**article_kwargs)
             added_vids += 1
             no_new_video = 0
 
         else:
-            article_obj = search_article[0]
+            article_obj = existing_article
             setattr(article_obj, "image_url", article_kwargs.get("image_url"))
             setattr(article_obj, "full_text_html", article_kwargs.get("full_text_html"))
             setattr(article_obj, "extract", article_kwargs.get("extract"))

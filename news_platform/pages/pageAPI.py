@@ -4,7 +4,6 @@
 import datetime
 import functools
 import urllib
-import requests
 import operator
 
 from django.conf import settings
@@ -21,6 +20,7 @@ from rest_framework.views import APIView
 
 from news_platform.celery import app
 from articles.models import Article
+from feed_scraper.http_utils import fetch_json_limited, head_status
 from feeds.models import Publisher
 from preferences.models import url_parm_encode
 
@@ -43,12 +43,69 @@ def __convert_type(n):
                 return n
 
 
-def get_articles(max_length=72, force_recache=False, grouped_articles=True, **kwargs):
-    """Gets article request by user either from database or from cache"""
+# Rehydrating more ids than this in one query would build an IN clause big
+# enough to hit SQLite's variable limit, so the lookup is chunked.
+ARTICLE_FETCH_CHUNK_SIZE = 500
+
+
+def _load_articles(pks):
+    """Turn a list of cached article ids back into model instances.
+
+    The two large text columns are deferred. `full_text_text` and `ai_summary`
+    are never touched by the list templates, and `full_text_html` is only
+    rendered for `content_type='group'` rows (home.html) - so instead of letting
+    the template trigger one deferred load per group row, it is back-filled for
+    exactly those rows in a single extra query.
+
+    Loading a page of 72 articles with their full bodies is several MB; deferring
+    them makes it a few hundred KB.
+    """
+    if not pks:
+        return []
+
+    base_queryset = (
+        Article.objects.select_related("publisher", "article_group")
+        # select_related is the correct tool for a forward FK - prefetch_related
+        # issued a second query per page and cached the result on the instances.
+        .defer("full_text_html", "full_text_text", "ai_summary")
+    )
+
+    articles_by_pk = {}
+    unique_pks = list(dict.fromkeys(pks))
+    for start in range(0, len(unique_pks), ARTICLE_FETCH_CHUNK_SIZE):
+        articles_by_pk.update(base_queryset.in_bulk(unique_pks[start : start + ARTICLE_FETCH_CHUNK_SIZE]))
+
+    group_pks = [pk for pk, article in articles_by_pk.items() if article.content_type == "group"]
+    if group_pks:
+        for pk, full_text_html in Article.objects.filter(pk__in=group_pks).values_list("pk", "full_text_html"):
+            # Assigning over a deferred field just populates the instance dict,
+            # which is what the descriptor reads from - no extra query later.
+            articles_by_pk[pk].full_text_html = full_text_html
+
+    # Rebuilt in the original order, keeping any duplicates the joins produced.
+    return [articles_by_pk[pk] for pk in pks if pk in articles_by_pk]
+
+
+def get_articles(max_length=72, force_recache=False, grouped_articles=True, hydrate=True, **kwargs):
+    """Gets article request by user either from database or from cache
+
+    The cache holds article *ids*, not pickled model instances. Every distinct
+    set of url parameters gets its own 48h cache entry and `refresh_all_pages()`
+    rewrites all of them twice per refresh cycle - storing whole `Article`
+    objects meant every one of those entries carried the full text of ~72
+    articles, in redis and in the worker that pickled them.
+
+    Pass `hydrate=False` when only the caching side effect is wanted; the second
+    return value is then the list of ids rather than model instances.
+    """
     kwargs_hash, kwargs = url_parm_encode(**kwargs)
     page_num = max(int(kwargs.pop("page", ["1"])[0]), 1) - 1
 
-    articles = cache.get(kwargs_hash)
+    article_pks = cache.get(kwargs_hash)
+    if article_pks is not None and not all(isinstance(pk, int) for pk in article_pks):
+        # Entry written by an older version of this function, which cached model
+        # instances. Drop it rather than trying to interpret it.
+        article_pks = None
 
     cached_views_lst = cache.get("cached_views_lst")
     if cached_views_lst is None:
@@ -60,7 +117,7 @@ def get_articles(max_length=72, force_recache=False, grouped_articles=True, **kw
             60 * 60 * 48,
         )
 
-    if articles is None or force_recache:
+    if article_pks is None or force_recache:
         conditions = Q()
         special_filters = kwargs["special"] if "special" in kwargs else None
         exclude_sidebar = True
@@ -89,17 +146,22 @@ def get_articles(max_length=72, force_recache=False, grouped_articles=True, **kw
             if field == "read_later":
                 has_read_later = True
             try:
-                test_condition = Article.objects.filter(sub_conditions)
+                # .exists() stops at the first matching row. `len(queryset)`
+                # loaded every matching Article - including its full text - into
+                # memory, once per filter field, purely to test for emptiness.
+                condition_has_matches = Article.objects.filter(sub_conditions).exists()
             except Exception:
-                test_condition = []
-            if len(test_condition) > 0:
+                condition_has_matches = False
+            if condition_has_matches:
                 conditions &= sub_conditions
         if grouped_articles:
             conditions &= Q(article_group__isnull=True)
         else:
             conditions &= Q(articlegroup__isnull=True)
             conditions &= ~Q(content_type="group")
-        articles = Article.objects.prefetch_related("publisher").filter(conditions)
+        # Only ids are pulled from the database here - the model instances are
+        # built once, at the end, by _load_articles().
+        articles = Article.objects.filter(conditions)
         articles = articles.order_by(
             F("min_article_relevance").asc(nulls_last=True),
             "-pub_date__date",
@@ -122,14 +184,23 @@ def get_articles(max_length=72, force_recache=False, grouped_articles=True, **kw
                     (Q(language__icontains=x) for x in settings.ALLOWED_LANGUAGES.split(",")),
                 )
             )
+        # Slicing the id queryset rather than the model queryset. The old
+        # `min(..., len(articles))` upper bound evaluated the *entire* result set
+        # just to compute a number that LIMIT/OFFSET already handles.
+        article_pk_queryset = articles.values_list("pk", flat=True)
         if max_length is not None:
             lower_bound = page_num * max_length
-            upper_bound = min((page_num + 1) * max_length, len(articles))
-            articles = articles[lower_bound:upper_bound]
+            article_pk_queryset = article_pk_queryset[lower_bound : lower_bound + max_length]
+        article_pks = list(article_pk_queryset)
+
         if grouped_articles:
-            cache.set(kwargs_hash, articles, 60 * 60 * 48 if page_num == 0 else 10 * 60)
+            cache.set(kwargs_hash, article_pks, 60 * 60 * 48 if page_num == 0 else 10 * 60)
         print(f"Got {kwargs_hash} from database" + (" and cached it" if grouped_articles else ""))
-    return kwargs_hash, articles, page_num + 1
+
+    if not hydrate:
+        return kwargs_hash, article_pks, page_num + 1
+
+    return kwargs_hash, _load_articles(article_pks), page_num + 1
 
 
 class RestArticleAPIView(APIView):
@@ -220,7 +291,7 @@ def ArchiveView(request, action, pk):
         )
 
 
-@app.task(bind=True, time_limit=60 * 3, max_retries=0)  # 3 min time limit
+@app.task(bind=True, time_limit=60 * 3, max_retries=0, ignore_result=True)  # 3 min time limit
 def refetch_image_article(self, pk):
     """Main function to refetching article image if loading error detected by JS"""
     print(f"Article {pk} image refetching started")
@@ -232,20 +303,24 @@ def refetch_image_article(self, pk):
         try:
             result = "Error checking current image"
             requested_article = Article.objects.get(pk=int(pk))
-            test_img = requests.get(requested_article.link)
-            if test_img.ok is False and test_img.status_code in [400, 404]:
-                result = f"Image does not work ({test_img.status_code}) - error fetching new image"
+            # Only the status code matters here. The previous `requests.get()` had
+            # no timeout at all and downloaded the whole body, so one slow or
+            # oversized image could pin a worker child for the full 3 min time
+            # limit while holding the entire response in memory.
+            status_code, is_ok = head_status(requested_article.link)
+            if is_ok is False and status_code in [400, 404]:
+                result = f"Image does not work ({status_code}) - error fetching new image"
                 full_text_request_url = (
                     f"{settings.FULL_TEXT_URL}extract.php?url={urllib.parse.quote(requested_article.link, safe='')}"
                 )
-                full_text_response = requests.get(full_text_request_url, timeout=5)
+                full_text_response = fetch_json_limited(full_text_request_url, timeout=(3.05, 5))
                 if full_text_response.status_code == 200:
                     full_text_json = full_text_response.json()
                     setattr(requested_article, "image_url", full_text_json.get("image", full_text_json.get("og_image")))
                     requested_article.save()
-                    result = f"Image does not work ({test_img.status_code}) - success fetching new image"
+                    result = f"Image does not work ({status_code}) - success fetching new image"
             else:
-                result = f"Image works ({test_img.status_code}) - refetching not required"
+                result = f"Image works ({status_code}) - refetching not required"
 
         except Exception as e:
             print(f'Error fetching image for article "{pk}": {e}')
