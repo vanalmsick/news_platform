@@ -16,6 +16,7 @@ docs/
 **/.DS_Store
 Dockerfile
 docker_compose.yml.example
+docker-compose.yml
 *.rdb
 dump.rdb
 README.md

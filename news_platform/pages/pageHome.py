@@ -5,6 +5,7 @@ import datetime
 import traceback
 import urllib.parse
 
+from celery import chain
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Count, Min
@@ -15,17 +16,26 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from articles.models import Article
-from feed_scraper.article_scraper import update_feeds
+from feed_scraper.article_scraper import find_grouped_articles, update_feeds
 from feed_scraper.video_scraper import update_videos
 from markets.scrape import scrape_market_data
-from news_platform.celery import app, is_task_already_executing
+from news_platform.celery import app
 from preferences.models import Page, get_page_lst, url_parm_encode
 from webpush.models import SubscriptionInfo
 
 from .pageAPI import get_articles
 
+# Key of the redis lock that serialises the refresh pipeline. `cache.add()` maps
+# onto redis SETNX, so acquiring it is atomic across workers - unlike the old
+# `inspect().active()` broadcast, which could not see a *chained* step running
+# and silently failed open when no worker replied in time.
+REFRESH_LOCK_KEY = "refresh_feeds_lock"
+# The lock expires on its own so a hard-killed worker (OOM, SIGKILL) cannot wedge
+# refreshing forever; it only has to outlive one full pipeline run.
+REFRESH_LOCK_TIMEOUT = 60 * 60 * 3
 
-@app.task(bind=True, time_limit=60 * 10, max_retries=5)  # 10 min time limit
+
+@app.task(bind=True, time_limit=60 * 10, max_retries=5, ignore_result=True)  # 10 min time limit
 def cleanup_webpush_subscriptions(self):
     """Cleanup multiple webpush subscriptions for same device"""
     # Step 1: Annotate each WebpushSubscriptionInfo with the minimum id for each group of auth and p256dh.
@@ -61,7 +71,11 @@ def refresh_all_pages():
             cached_views_dict[k] = v
 
     for view_hash, view_kwargs in cached_views_dict.items():
-        _, _, _ = get_articles(**view_kwargs, force_recache=True)
+        # hydrate=False recomputes and re-caches the article ids without building
+        # the model instances. Nothing here looks at the articles, and this runs
+        # over every cached page twice per refresh cycle - previously that meant
+        # loading (and pickling) thousands of full article rows for nothing.
+        _, _, _ = get_articles(**view_kwargs, force_recache=True, hydrate=False)
 
 
 def get_stats():
@@ -88,59 +102,150 @@ def get_stats():
             )
 
 
+def _set_currently_refreshing(state):
+    """Publish the refresh state that the frontend polls via /api/last-refresh/"""
+    cache.set("currentlyRefreshing", state, 60 * 60 * 2 + 300)
+
+
+def _release_refresh_lock():
+    """Drop the pipeline lock and mark refreshing as finished."""
+    cache.delete(REFRESH_LOCK_KEY)
+    _set_currently_refreshing(False)
+
+
+# ---------------------------------------------------------------------------
+# The refresh pipeline
+#
+# This used to be a single 3-hour task that scraped feeds, scraped videos,
+# scraped market data, ran a sentence-transformer clustering pass and called the
+# OpenAI API. Peak RSS was therefore the *union* of all of those - torch stayed
+# resident alongside the scraped page buffers - and neither
+# --max-tasks-per-child nor worker_max_memory_per_child can help with that,
+# because both only act *between* tasks.
+#
+# Splitting it into a chain means each step runs in its own forked child, so the
+# memory a step allocates is handed back to the OS before the next one starts,
+# and the (by far heaviest) clustering step can be recycled on its own.
+# ---------------------------------------------------------------------------
+
+
+@app.task(bind=True, time_limit=60 * 60, max_retries=3)  # 1 hour time limit
+def scrape_articles(self):
+    """Pipeline step 1: refresh publisher stats, page caches and article feeds."""
+    try:
+        get_stats()
+        # Caching articles before updating
+        refresh_all_pages()
+        added_articles = update_feeds()
+        return f"articles refreshed successfully ({added_articles} added)"
+    except Exception as e:
+        print(traceback.format_exc())
+        raise self.retry(countdown=60, exc=e)
+
+
+@app.task(bind=True, time_limit=60 * 60, max_retries=3)  # 1 hour time limit
+def scrape_videos(self):
+    """Pipeline step 2: refresh video feeds, but only every 9th cycle."""
+    video_refresh_cycle_count = cache.get("videoRefreshCycleCount")
+    if video_refresh_cycle_count:
+        print(f"Refreshing videos in {video_refresh_cycle_count - 1} cycles")
+        cache.set("videoRefreshCycleCount", video_refresh_cycle_count - 1, 60 * 60 * 24)
+        return "video refresh not required"
+
+    try:
+        update_videos()
+        cache.set("videoRefreshCycleCount", 8, 60 * 60 * 24)
+        return "videos refreshed successfully"
+    except Exception as e:
+        print(traceback.format_exc())
+        raise self.retry(countdown=60, exc=e)
+
+
+@app.task(bind=True, time_limit=60 * 20, max_retries=3)  # 20 min time limit
+def scrape_markets(self):
+    """Pipeline step 3: refresh stock/FX/commodity data (pulls in pandas)."""
+    try:
+        scrape_market_data()
+        return "market data refreshed successfully"
+    except Exception as e:
+        print(traceback.format_exc())
+        raise self.retry(countdown=60, exc=e)
+
+
+@app.task(bind=True, time_limit=60 * 60, max_retries=1)  # 1 hour time limit
+def group_articles(self):
+    """Pipeline step 4: cluster articles about the same topic.
+
+    Routed to the 'ml' queue (see celery.py) because this is the only task that
+    imports torch/sentence-transformers. Isolating it keeps several hundred MB of
+    model and framework RSS out of every other step.
+    """
+    try:
+        find_grouped_articles()
+        return "article groups refreshed successfully"
+    except Exception as e:
+        print(traceback.format_exc())
+        raise self.retry(countdown=60, exc=e)
+
+
+@app.task(bind=True, time_limit=60 * 20, max_retries=1)  # 20 min time limit
+def finalise_refresh(self):
+    """Pipeline step 5: re-cache every page and release the lock."""
+    try:
+        refresh_all_pages()
+        now = settings.TIME_ZONE_OBJ.localize(datetime.datetime.now())
+        cache.set("lastRefreshed", str(now.isoformat()), 60 * 60 * 48)
+        print("refreshing finished")
+        return "DONE"
+    finally:
+        # Runs even if re-caching blows up: the lock must never outlive the run.
+        _release_refresh_lock()
+
+
+@app.task(bind=True, ignore_result=True)
+def refresh_failed(self, request, exc, traceback_str):
+    """link_error handler - releases the lock when any pipeline step gives up."""
+    failed_task = getattr(request, "task", "unknown task")
+    print(f"Refresh pipeline step '{failed_task}' failed and will not be retried: {exc}")
+    _release_refresh_lock()
+    return f"ERROR: {exc}"
+
+
 # @postpone
-@app.task(bind=True, time_limit=60 * 60 * 3, max_retries=5)  # 3 hour time limit
+@app.task(bind=True, time_limit=60 * 5, max_retries=0, ignore_result=True)  # 5 min time limit
 def refresh_feeds(self):
-    """Main function to refresh all articles and videos"""
+    """Entry point: dispatch the refresh pipeline if it is not already running.
+
+    This task no longer does the work itself - it only takes the lock and queues
+    the chain, so it returns in milliseconds instead of holding a worker child
+    (and everything that child allocated) for up to three hours.
+    """
     print("refreshing started")
 
-    # currentlyRefreshing = cache.get("currentlyRefreshing")
-    currentlyRefreshing = is_task_already_executing("news_platform.pages.pageHome.refresh_feeds")
-    if currentlyRefreshing:
+    if not cache.add(REFRESH_LOCK_KEY, self.request.id or "manual", REFRESH_LOCK_TIMEOUT):
         print("Already other task that is refreshing articles")
         return "ALREADY RUNNING"
 
-    response = ""
-    try:
-        cache.set("currentlyRefreshing", True, 60 * 60 * 2 + 300)
-        videoRefreshCycleCount = cache.get("videoRefreshCycleCount")
+    _set_currently_refreshing(True)
 
-        get_stats()
+    on_error = refresh_failed.s()
+    # Immutable signatures (.si) - no step needs the previous step's return value,
+    # and this keeps result payloads out of the broker.
+    steps = [
+        scrape_articles.si(),
+        scrape_videos.si(),
+        scrape_markets.si(),
+        group_articles.si(),
+        finalise_refresh.si(),
+    ]
+    # link_error has to be attached per signature: a chain only propagates an
+    # errback attached to the chain itself to its first member.
+    for step in steps:
+        step.link_error(on_error)
 
-        # Caching articles before updating
-        refresh_all_pages()
+    chain(*steps).apply_async()
 
-        update_feeds()
-        response += "articles refreshed successfully; "
-        if videoRefreshCycleCount is None or videoRefreshCycleCount == 0:
-            update_videos()
-            cache.set("videoRefreshCycleCount", 8, 60 * 60 * 24)
-            response += "videos refreshed successfully; "
-        else:
-            print(f"Refreshing videos in {videoRefreshCycleCount - 1} cycles")
-            cache.set("videoRefreshCycleCount", videoRefreshCycleCount - 1, 60 * 60 * 24)
-            response += "video refresh not required; "
-
-        refresh_all_pages()
-
-        # Update marekt data
-        scrape_market_data()
-        response += "market data refreshed successfully; "
-
-        now = settings.TIME_ZONE_OBJ.localize(datetime.datetime.now())
-        cache.set("lastRefreshed", str(now.isoformat()), 60 * 60 * 48) # .utcnow()
-
-        response += "DONE"
-        cache.set("currentlyRefreshing", False, 60 * 60 * 2)
-        print("refreshing finished")
-
-    except Exception as e:
-        response += f"ERROR: {e}"
-        cache.set("currentlyRefreshing", False, 60 * 60 * 2)
-        print(traceback.format_exc())
-        raise self.retry(countdown=30, exc=e)
-
-    return response
+    return "DISPATCHED"
 
 
 def homeView(request, article=None):

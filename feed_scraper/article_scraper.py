@@ -2,6 +2,7 @@
 """This file is doing the article scraping"""
 
 import datetime
+import gc
 import html
 import math
 import os
@@ -12,7 +13,6 @@ import urllib
 
 import feedparser
 import ratelimit
-import requests  # type: ignore
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.core.cache import cache
@@ -27,6 +27,7 @@ from feeds.models import Feed, Publisher
 from preferences.models import Page
 
 from .article_scraper_class import ScrapedArticle
+from .http_utils import fetch_json_limited, fetch_limited
 from news_platform.pages.pageAPI import get_articles
 
 
@@ -53,143 +54,176 @@ def find_grouped_articles():
     # therefore supervisord's `check && exec gunicorn` - blocked on the torch
     # import before gunicorn ever bound :80. Keep it local to the one function
     # that needs it so only the celery worker actually pays for it.
+    import torch
     from sentence_transformers import SentenceTransformer
     from sklearn.cluster import AgglomerativeClustering
 
     print("Finding article groups...")
-    pages_kwargs = Page.objects.all().order_by("-position_index").values_list("url_parameters_json", flat=True)
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    pages_kwargs = list(Page.objects.all().order_by("-position_index").values_list("url_parameters_json", flat=True))
+    model = SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
     new_article_groups = 0
 
-    for page_kwargs in pages_kwargs:
-        _, articles, _ = get_articles(grouped_articles=False, force_recache=True, **page_kwargs)
-        articles_query = [
-            {"id": i.id, "title": i.title, "summary": i.extract, "article_group": i.article_group} for i in articles
-        ]
-
-        articles_text = [f"{i['title']}.\n{i['summary']}" for i in articles_query]
-        embeddings = model.encode(articles_text)
-
-        clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=1.0, linkage="ward")
-        hierarchical_labels = clustering.fit_predict(embeddings)
-
-        article_groups = {
-            i: cat
-            for i, cat in zip(range(len(hierarchical_labels)), hierarchical_labels)
-            if {i: hierarchical_labels.tolist().count(i) for i in range(max(hierarchical_labels) + 1)}[cat] > 1
-        }
-        sorted_article_groups = sorted(article_groups.items(), key=lambda item: item[1])
-        grouped_article_groups = {
-            k: [i[0] for i in g] for k, g in groupby(sorted_article_groups, key=lambda item: item[1])
-        }
-
-        for _, article_pos in grouped_article_groups.items():
-            if len(article_pos) < 10:  # ensure not insane large article groups - probably incorrect group then
-                new_article_groups += 1
-                existing_article_groups = [articles_query[i]["article_group"] for i in article_pos]
-                article_ids = [articles_query[i]["id"] for i in article_pos]
-                common_article_group = max([-1] + [x.id for x in existing_article_groups if x is not None])
-                all_same_groups = all([i is None or i.id == common_article_group for i in existing_article_groups])
-
-                # if different existing article groups - delete existing grouped articles
-                if all_same_groups is False:
-                    for i in existing_article_groups:
-                        if i is not None:
-                            i.delete()
-
-                # get existing ArticleGroup
-                if common_article_group != -1 and all_same_groups:
-                    article_group = ArticleGroup.objects.filter(id=common_article_group)
-                    if len(article_group) > 0:
-                        article_group = article_group[0]
-                    else:
-                        article_group = ArticleGroup()
-                        article_group.save()
-
-                # create new ArticleGroup
-                else:
-                    article_group = ArticleGroup()
-                    article_group.save()
-
-                # add ArticleGroup to articles
-                for article_id in article_ids:
-                    article = Article.objects.get(id=article_id)
-                    setattr(article, "article_group", article_group)
-                    article.save()
-
-                articles = Article.objects.filter(article_group__id=article_group.id).order_by("min_article_relevance")
-
-                categories = ";".join(set(";".join(i.categories for i in articles).split(";")))
-                extract_html_rows = [
-                    f'<tr class="context-card border-top border-bottom" article_id="{i.pk}" article_target="{"view" if i.has_full_text else "redirect"}"><td>{i.title}<br><span class="text-muted">{i.publisher.name} - <script>document.write(createDateStr("{i.pub_date.isoformat()}", "{i.added_date.isoformat()}", "medium"));</script></span></td></tr>'
-                    for i in articles[1:]
-                ]
-                extract_html_rows = "\n".join(extract_html_rows[: min(3, len(extract_html_rows))])
-                extract_html = f"\n<tbody>\n{extract_html_rows}\n</tbody>\n"
-
-                combined_article = Article(
-                    title=articles[0].title,
-                    publisher=articles[0].publisher,
-                    link=articles[0].link,
-                    image_url=articles[0].image_url,
-                    language=articles[0].language,
-                    mailto_link=articles[0].mailto_link,
-                    content_type="group",
-                    pub_date=articles.aggregate(Max("pub_date"))["pub_date__max"],
-                    added_date=articles.aggregate(Max("added_date"))["added_date__max"],
-                    last_updated_date=articles.aggregate(Max("last_updated_date"))["last_updated_date__max"],
-                    publisher_article_position=articles.aggregate(Min("publisher_article_position"))[
-                        "publisher_article_position__min"
-                    ],
-                    min_feed_position=articles.aggregate(Min("min_feed_position"))["min_feed_position__min"],
-                    min_article_relevance=articles.aggregate(Min("min_article_relevance"))[
-                        "min_article_relevance__min"
-                    ],
-                    max_importance=articles.aggregate(Max("max_importance"))["max_importance__max"],
-                    extract=articles[0].extract,
-                    categories=categories,
-                    full_text_html=extract_html,
-                    full_text_text=articles[0].full_text_text,
-                    has_full_text=False,
-                    ai_summary=articles[0].ai_summary,
-                    hash="group_" + str(random.randint(1, 1_000_000_000_000_000)),
-                )
-                combined_article.save()
-
-                setattr(article_group, "combined_article", combined_article)
-                article_group.save()
+    try:
+        for page_kwargs in pages_kwargs:
+            new_article_groups += _group_articles_of_page(model, torch, AgglomerativeClustering, page_kwargs)
+    finally:
+        # The model plus torch's allocator caches are several hundred MB. Dropping
+        # the last reference and forcing a collection returns most of it before
+        # the rest of this function runs; the task_postrun malloc_trim hook in
+        # celery.py then hands the freed arenas back to the OS.
+        del model
+        gc.collect()
 
     # Delete old article groups
     ArticleGroup.objects.filter(article=None).delete()
     Article.objects.filter(content_type="group", articlegroup__isnull=True).delete()
 
     # Update not new article group's relevance
-    all_article_groups = ArticleGroup.objects.all()
-    for article_group in all_article_groups:
+    # .iterator() streams the rows instead of caching every ArticleGroup (and its
+    # combined_article) in the queryset's result cache for the whole loop.
+    for article_group in ArticleGroup.objects.all().iterator(chunk_size=200):
         articles = Article.objects.filter(article_group__id=article_group.id)
         combined_article = article_group.combined_article
 
-        if len(articles) > 0 and combined_article is not None:
-            setattr(
-                combined_article,
-                "publisher_article_position",
-                articles.aggregate(Min("publisher_article_position"))["publisher_article_position__min"],
+        if combined_article is not None and articles.exists():
+            aggregates = articles.aggregate(
+                publisher_article_position=Min("publisher_article_position"),
+                min_feed_position=Min("min_feed_position"),
+                min_article_relevance=Min("min_article_relevance"),
+                max_importance=Max("max_importance"),
             )
-            setattr(
-                combined_article,
-                "min_feed_position",
-                articles.aggregate(Min("min_feed_position"))["min_feed_position__min"],
-            )
-            setattr(
-                combined_article,
-                "min_article_relevance",
-                articles.aggregate(Min("min_article_relevance"))["min_article_relevance__min"],
-            )
-            setattr(combined_article, "max_importance", articles.aggregate(Max("max_importance"))["max_importance__max"])
-
+            for field, value in aggregates.items():
+                setattr(combined_article, field, value)
             combined_article.save()
 
     print(f"Found {new_article_groups} article groups.")
+
+
+def _group_articles_of_page(model, torch, AgglomerativeClustering, page_kwargs):
+    """Cluster one page's articles. Split out of `find_grouped_articles` so every
+    intermediate (embeddings, clustering model, article dicts) goes out of scope
+    when the page is done instead of living until the whole pass finishes."""
+    new_article_groups = 0
+
+    _, articles, _ = get_articles(grouped_articles=False, force_recache=True, **page_kwargs)
+    articles_query = [
+        {"id": i.id, "title": i.title, "summary": i.extract, "article_group": i.article_group} for i in articles
+    ]
+    del articles
+
+    articles_text = [f"{i['title']}.\n{i['summary']}" for i in articles_query]
+    if len(articles_text) < 2:
+        # AgglomerativeClustering needs at least two samples to build a tree.
+        return 0
+
+    # inference_mode stops torch building an autograd graph for the forward pass -
+    # that graph is pure overhead here and stays alive for as long as the returned
+    # tensors do. batch_size caps how many sequences are padded into one tensor.
+    with torch.inference_mode():
+        embeddings = model.encode(
+            articles_text,
+            batch_size=32,
+            convert_to_numpy=True,
+            show_progress_bar=False,
+        )
+    del articles_text
+
+    clustering = AgglomerativeClustering(n_clusters=None, distance_threshold=1.0, linkage="ward")
+    hierarchical_labels = clustering.fit_predict(embeddings)
+    del embeddings, clustering
+
+    article_groups = {
+        i: cat
+        for i, cat in zip(range(len(hierarchical_labels)), hierarchical_labels)
+        if {i: hierarchical_labels.tolist().count(i) for i in range(max(hierarchical_labels) + 1)}[cat] > 1
+    }
+    sorted_article_groups = sorted(article_groups.items(), key=lambda item: item[1])
+    grouped_article_groups = {k: [i[0] for i in g] for k, g in groupby(sorted_article_groups, key=lambda item: item[1])}
+
+    for _, article_pos in grouped_article_groups.items():
+        if len(article_pos) < 10:  # ensure not insane large article groups - probably incorrect group then
+            new_article_groups += 1
+            existing_article_groups = [articles_query[i]["article_group"] for i in article_pos]
+            article_ids = [articles_query[i]["id"] for i in article_pos]
+            common_article_group = max([-1] + [x.id for x in existing_article_groups if x is not None])
+            all_same_groups = all([i is None or i.id == common_article_group for i in existing_article_groups])
+
+            # if different existing article groups - delete existing grouped articles
+            if all_same_groups is False:
+                for i in existing_article_groups:
+                    if i is not None:
+                        i.delete()
+
+            # get existing ArticleGroup
+            article_group = None
+            if common_article_group != -1 and all_same_groups:
+                # .first() fetches at most one row; len()/[0] fetched the whole
+                # (unbounded) filter result just to look at its first element.
+                article_group = ArticleGroup.objects.filter(id=common_article_group).first()
+
+            # create new ArticleGroup
+            if article_group is None:
+                article_group = ArticleGroup()
+                article_group.save()
+
+            # add ArticleGroup to articles
+            for article_id in article_ids:
+                article = Article.objects.get(id=article_id)
+                setattr(article, "article_group", article_group)
+                article.save()
+
+            articles = Article.objects.filter(article_group__id=article_group.id).order_by("min_article_relevance")
+
+            categories = ";".join(set(";".join(i.categories for i in articles).split(";")))
+            extract_html_rows = [
+                f'<tr class="context-card border-top border-bottom" article_id="{i.pk}" article_target="{"view" if i.has_full_text else "redirect"}"><td>{i.title}<br><span class="text-muted">{i.publisher.name} - <script>document.write(createDateStr("{i.pub_date.isoformat()}", "{i.added_date.isoformat()}", "medium"));</script></span></td></tr>'
+                for i in articles[1:]
+            ]
+            extract_html_rows = "\n".join(extract_html_rows[: min(3, len(extract_html_rows))])
+            extract_html = f"\n<tbody>\n{extract_html_rows}\n</tbody>\n"
+
+            # One aggregate query instead of seven, and the result is a plain dict
+            # rather than seven separately evaluated querysets.
+            aggregates = articles.aggregate(
+                Max("pub_date"),
+                Max("added_date"),
+                Max("last_updated_date"),
+                Min("publisher_article_position"),
+                Min("min_feed_position"),
+                Min("min_article_relevance"),
+                Max("max_importance"),
+            )
+            first_article = articles.first()
+
+            combined_article = Article(
+                title=first_article.title,
+                publisher=first_article.publisher,
+                link=first_article.link,
+                image_url=first_article.image_url,
+                language=first_article.language,
+                mailto_link=first_article.mailto_link,
+                content_type="group",
+                pub_date=aggregates["pub_date__max"],
+                added_date=aggregates["added_date__max"],
+                last_updated_date=aggregates["last_updated_date__max"],
+                publisher_article_position=aggregates["publisher_article_position__min"],
+                min_feed_position=aggregates["min_feed_position__min"],
+                min_article_relevance=aggregates["min_article_relevance__min"],
+                max_importance=aggregates["max_importance__max"],
+                extract=first_article.extract,
+                categories=categories,
+                full_text_html=extract_html,
+                full_text_text=first_article.full_text_text,
+                has_full_text=False,
+                ai_summary=first_article.ai_summary,
+                hash="group_" + str(random.randint(1, 1_000_000_000_000_000)),
+            )
+            combined_article.save()
+
+            setattr(article_group, "combined_article", combined_article)
+            article_group.save()
+
+    return new_article_groups
 
 
 def update_feeds():
@@ -197,8 +231,7 @@ def update_feeds():
     start_time = time.time()
 
     # delete feed positions of inactive feeds
-    inactive_feeds = Feed.objects.filter(~Q(active=True))
-    for feed in inactive_feeds:
+    for feed in Feed.objects.filter(~Q(active=True)).iterator():
         delete_feed_positions(feed=feed)
 
     # get active feeds
@@ -216,9 +249,12 @@ def update_feeds():
         feed.save()
 
     # apply publisher feed position
-    publishers = Publisher.objects.all()
-    for publisher in publishers:
-        articles = (
+    for publisher in Publisher.objects.all().iterator():
+        # Only the two values the calculation needs are pulled out of the
+        # database. Iterating the model queryset built a full Article instance -
+        # including its full text - for every article of every publisher, and
+        # kept them all alive in the queryset's result cache at the same time.
+        article_rows = list(
             Article.objects.filter(feedposition__feed__publisher__pk=publisher.pk)
             .exclude(min_feed_position__isnull=True)
             .exclude(min_article_relevance__isnull=True)
@@ -229,41 +265,53 @@ def update_feeds():
                 "-calc_rel_feed_pos",
                 "feed_count",
             )
+            .values_list("pk", "min_article_relevance")
         )
-        len_articles = len(articles)
-        for i, article in enumerate(articles):
-            setattr(article, "publisher_article_position", int(len_articles - i))
-            setattr(
-                article,
-                "min_article_relevance",
-                min(
-                    float(
-                        round(
-                            (len_articles - i) * float(getattr(article, "min_article_relevance")),
-                            6,
-                        )
-                    ),
+        len_articles = len(article_rows)
+
+        articles_to_update = [
+            Article(
+                pk=pk,
+                publisher_article_position=int(len_articles - i),
+                min_article_relevance=min(
+                    float(round((len_articles - i) * float(min_article_relevance), 6)),
                     10_000,
                 ),
             )
-            article.save()
+            for i, (pk, min_article_relevance) in enumerate(article_rows)
+        ]
+        # One UPDATE per batch instead of one per article. Note this bypasses
+        # Article.save(), which only recomputes mailto_link - and that depends on
+        # publisher/title/link, none of which change here.
+        Article.objects.bulk_update(
+            articles_to_update,
+            ["publisher_article_position", "min_article_relevance"],
+            batch_size=500,
+        )
+        del article_rows, articles_to_update
 
     # refresh next refresh time
     end_time = time.time()
 
     now = datetime.datetime.now()
+    min_article_relevance = None
     if now.hour >= 18 or now.hour < 6 or now.weekday() in [5, 6]:
         print(
             "No AI summaries are generated during non-business "
             "hours (i.e. between 18:00-6:00 and on Saturdays and Sundays)"
         )
     else:
-        min_article_relevance = (
+        # Pull only the single value that is needed rather than a whole Article.
+        # The [:21] slice also makes the previous IndexError impossible when
+        # fewer than 21 frontpage articles exist.
+        relevance_cutoffs = list(
             Article.objects.filter(categories__icontains="FRONTPAGE", min_article_relevance__isnull=False)
-            .order_by("min_article_relevance")[20]
-            .min_article_relevance
+            .order_by("min_article_relevance")
+            .values_list("min_article_relevance", flat=True)[:21]
         )
+        min_article_relevance = relevance_cutoffs[-1] if relevance_cutoffs else None
 
+    if min_article_relevance is not None:
         articles_add_ai_summary = Article.objects.filter(
             has_full_text=True,
             ai_summary__isnull=True,
@@ -289,17 +337,23 @@ def update_feeds():
         .exclude(read_later=True)
         .exclude(archive=True)
     )
-    if len(old_articles) > 0:
-        print(f"Delete {len(old_articles)} old articles")
+    # .count() asks the database for a number; len() loaded every stale article
+    # (full text included) into memory just to decide whether to delete them.
+    old_articles_count = old_articles.count()
+    if old_articles_count > 0:
+        print(f"Delete {old_articles_count} old articles")
         old_articles.delete()
     else:
         print("No old articles to delete")
 
-    find_grouped_articles()
+    # NOTE: find_grouped_articles() is no longer called here. It is the
+    # `group_articles` celery task (pageHome.py) so that torch is loaded in a
+    # child process that gets recycled straight afterwards.
 
     print(f"Refreshed articles and added {added_articles} articles in" f" {int(end_time - start_time)} seconds")
 
     # connection.close()
+    return added_articles
 
 
 def calcualte_relevance(publisher, feed, feed_position, hash, pub_date, article_type):
@@ -389,7 +443,16 @@ def add_ai_summary(article_obj_lst):
     if settings.OPENAI_API_KEY is None:
         print("Not Requesting AI article summaries as OPENAI_API_KEY not set.")
     else:
-        print(f"Requesting AI article summaries for {len(article_obj_lst)} articles.")
+        # Resolve the queryset to ids up front and fetch one article at a time.
+        # Iterating the queryset directly held every candidate article - each with
+        # its complete full_text_html - in memory for the whole (rate-limited,
+        # therefore slow) OpenAI loop.
+        if hasattr(article_obj_lst, "values_list"):
+            article_pks = list(article_obj_lst.values_list("pk", flat=True))
+        else:
+            article_pks = [article_obj.pk for article_obj in article_obj_lst]
+
+        print(f"Requesting AI article summaries for {len(article_pks)} articles.")
 
         # openai.api_key = settings.OPENAI_API_KEY
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
@@ -401,7 +464,10 @@ def add_ai_summary(article_obj_lst):
         THIS_RUN_API_COST = 0
         articles_summarized = 0
 
-        for article_obj in article_obj_lst:
+        for article_pk in article_pks:
+            article_obj = Article.objects.select_related("publisher").filter(pk=article_pk).first()
+            if article_obj is None:  # deleted between building the list and now
+                continue
             logging = [
                 str(datetime.datetime.now().isoformat()),
                 str(article_obj.pk),
@@ -414,6 +480,9 @@ def add_ai_summary(article_obj_lst):
             try:
                 soup = BeautifulSoup(article_obj.full_text_html, "html5lib")
                 article_text = " ".join(html.unescape(soup.text).split())
+                # The parse tree is the largest object in this loop and is not
+                # needed once the text has been extracted.
+                del soup
                 # article_text = re.sub(r'\n+', '\n', article_text).strip()
                 if len(article_text) > 3000 * 5:
                     article_text = article_text[: 3000 * 5]
@@ -519,23 +588,33 @@ def fetch_feed(feed, force_refetch):
         scraped_article__last_updated = scraped_article.article_last_updated__final
 
         # check if article already exists
-        matches = Article.objects.filter(
-            guid=scraped_article__guid[:95]
-            if isinstance(scraped_article__guid, str) and len(scraped_article__guid) > 95
-            else scraped_article__guid
-        )
-        if len(matches) == 0:
-            matches = Article.objects.filter(
-                hash=scraped_article__hash[:100]
-                if isinstance(scraped_article__hash, str) and len(scraped_article__hash) > 100
-                else scraped_article__hash
+        # .first() stops after one row; the previous len()/[0] pattern fetched
+        # every matching Article (with its full text) to look at one of them.
+        article_obj = (
+            Article.objects.select_related("publisher")
+            .filter(
+                guid=scraped_article__guid[:95]
+                if isinstance(scraped_article__guid, str) and len(scraped_article__guid) > 95
+                else scraped_article__guid
             )
+            .first()
+        )
+        if article_obj is None:
+            article_obj = (
+                Article.objects.select_related("publisher")
+                .filter(
+                    hash=scraped_article__hash[:100]
+                    if isinstance(scraped_article__hash, str) and len(scraped_article__hash) > 100
+                    else scraped_article__hash
+                )
+                .first()
+            )
+        has_match = article_obj is not None
 
         # check if additional data fetching required
         fetch = False
         full_text_scraping = feed.full_text_fetch == "Y"
-        if len(matches) > 0:
-            article_obj = matches[0]
+        if has_match:
             scraped_article.current_categories = article_obj.categories
             # if article was updated or
             # article is missing image or extract and was published in the last 4 hours try getting content or
@@ -569,8 +648,12 @@ def fetch_feed(feed, force_refetch):
         if fetch:
             # fetch <meta> data
             try:
-                article_html_response = requests.get(scraped_article__url, timeout=5)
+                # Bounded fetch: only the <head> metadata is wanted, so anything
+                # that is not HTML or is larger than the cap is skipped outright
+                # rather than being buffered into the worker first.
+                article_html_response = fetch_limited(scraped_article__url)
                 scraped_article.parse_meta_attrs(response_obj=article_html_response)
+                del article_html_response
             except Exception as e:
                 print(f'Error fetching meta for "{scraped_article.article_title__final}": {e}')
             if full_text_scraping and settings.FULL_TEXT_URL is not None:
@@ -580,24 +663,26 @@ def fetch_feed(feed, force_refetch):
                         f"{settings.FULL_TEXT_URL}extract.php?"
                         f'url={urllib.parse.quote(scraped_article__url, safe="")}'
                     )
-                    full_text_response = requests.get(full_text_request_url, timeout=5)
+                    full_text_response = fetch_json_limited(full_text_request_url, timeout=(3.05, 5))
                     if full_text_response.status_code == 200:
                         full_text_json = full_text_response.json()
                         scraped_article.parse_scrape_attrs(json_dict=full_text_json)
+                        del full_text_json
+                    del full_text_response
                 except Exception as e:
                     print(f'Error fetching full-text for "{scraped_article.article_title__final}": {e}')
 
         # create new entry
-        if len(matches) == 0:
+        if not has_match:
             article_kwargs = scraped_article.get_final_attrs()
             # if feed is news aggregator - find correct article publisher
             if isinstance((publisher := article_kwargs["publisher"]), dict):
                 if "link" in publisher:
                     url = ".".join(publisher["link"].split(".")[-2:])
-                    matching_publishers = Publisher.objects.filter(link__icontains=url)
+                    matching_publisher = Publisher.objects.filter(link__icontains=url).first()
                     # existing matching publisher found
-                    if len(matching_publishers) > 0:
-                        article_kwargs["publisher"] = matching_publishers[0]
+                    if matching_publisher is not None:
+                        article_kwargs["publisher"] = matching_publisher
                     # no existing found - create new
                     else:
                         publisher_obj = Publisher(**article_kwargs["publisher"], renowned=-2)
@@ -611,7 +696,7 @@ def fetch_feed(feed, force_refetch):
             added_articles += 1
 
         # update entry
-        elif fetch and len(matches) > 0:
+        elif fetch:
             article_kwargs = scraped_article.get_final_attrs()
             _ = article_kwargs.pop("publisher")
             for prop, new_value in article_kwargs.items():
