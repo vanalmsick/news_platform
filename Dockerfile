@@ -5,7 +5,7 @@
 # Build-only tooling (compilers, -dev headers, pip cache) never reaches the
 # final image.
 ##############################################################################
-FROM python:3.14.6-slim AS builder
+FROM python:3.14.7-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -42,7 +42,7 @@ RUN find /opt/venv -depth \( -name '__pycache__' -o -name '*.pyc' -o -name '*.py
 ##############################################################################
 # Stage 2: runtime
 ##############################################################################
-FROM python:3.14.6-slim AS runtime
+FROM python:3.14.7-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
