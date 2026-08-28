@@ -1,4 +1,4 @@
-django>=6.0.7
+django>=6.1
 pytz
 requests
 feedparser
