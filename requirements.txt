@@ -1,4 +1,4 @@
-django>=6.1
+django
 pytz
 requests
 feedparser
@@ -24,7 +24,7 @@ celery
 flower
 pillow
 celery[redis]
-django_celery_beat
+django_celery_beat>=2.9.0
 django-webpush
 django-pwa
 sentry-sdk[django]
