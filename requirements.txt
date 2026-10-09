@@ -11,7 +11,7 @@ django-extensions
 djangorestframework
 djoser
 django-filter
-openai>=3.13.0
+openai>=3.19.2
 ratelimit
 scrapetube
 django-import-export>=4.4.1
