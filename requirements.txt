@@ -11,10 +11,10 @@ django-extensions
 djangorestframework
 djoser
 django-filter
-openai>=3.19.2
+openai
 ratelimit
 scrapetube
-django-import-export>=4.4.1
+django-import-export
 langid
 python-dotenv
 supervisor
@@ -24,7 +24,7 @@ celery
 flower
 pillow
 celery[redis]
-django_celery_beat>=2.9.0
+django_celery_beat
 django-webpush
 django-pwa
 sentry-sdk[django]
