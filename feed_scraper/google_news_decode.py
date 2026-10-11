@@ -3,7 +3,7 @@
 
 import requests
 import functools
-from googlenewsdecoder import new_decoderv1
+from googlenewsdecoder import gnewsdecoder
 
 # Old Solution from https://gist.github.com/huksley/bc3cb046157a99cd9d1517b32f91a99e?permalink_comment_id=5132769
 # New Solution package googlenewsdecoder
@@ -15,8 +15,8 @@ def decode_google_news_url(source_url):
     url = requests.utils.urlparse(source_url)
     path = url.path.split("/")
     if url.hostname == "news.google.com" and len(path) > 1 and path[-2] == "articles":
-        decoded_url = new_decoderv1(source_url)
-        if decoded_url.get("status"):
+        decoded_url = gnewsdecoder(source_url)
+        if decoded_url.get("success"):
             return decoded_url["decoded_url"]
         else:
             print("GNews Decode Error:", decoded_url["message"])
