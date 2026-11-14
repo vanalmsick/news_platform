@@ -37,7 +37,7 @@ django-unfold
 # pulls mkdocs + mkdocs-material (~90MB) into the runtime image for nothing.
 googlenewsdecoder
 # googlenewsdecoder imports selectolax.parser (Modest backend), removed in selectolax 1.0
-selectolax<1.0
+selectolax<2.0
 curl_cffi
 scikit-learn
 sentence-transformers
