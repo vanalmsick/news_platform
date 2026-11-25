@@ -497,7 +497,7 @@ def add_ai_summary(article_obj_lst):
                 check_limit_openai()
                 completion = client.chat.completions.create(
                     # completion = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
+                    model="gpt-6.1-terra",
                     messages=[
                         {
                             "role": "system",
